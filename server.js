@@ -26,30 +26,46 @@ const EXTRACT_QA_PROMPT = fs.readFileSync(path.join(__dirname, 'instructions.md'
 // MongoDB connection
 let db;
 let sessionsCollection;
+let mongoConnected = false;
+let mongoError = null;
 
 async function connectToMongo() {
   if (!MONGO_URL) {
-    console.warn('MONGO_URL not configured - sessions will not be saved');
+    mongoError = 'MONGO_URL not configured';
+    console.warn('⚠️  MONGO_URL not configured - sessions will not be saved');
+    console.warn('   On Railway: Add MongoDB plugin and set MONGO_URL=${{MongoDB.MONGO_URL}}');
     return;
   }
   
   try {
-    const client = new MongoClient(MONGO_URL);
+    console.log('🔌 Connecting to MongoDB...');
+    const client = new MongoClient(MONGO_URL, {
+      serverSelectionTimeoutMS: 5000,
+    });
     await client.connect();
     db = client.db('spanish-tutor');
     sessionsCollection = db.collection('sessions');
     
-    // Create indexes for better query performance
     await sessionsCollection.createIndex({ createdAt: -1 });
     await sessionsCollection.createIndex({ name: 'text' });
     
-    console.log('Connected to MongoDB');
+    mongoConnected = true;
+    console.log('✅ Connected to MongoDB');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    mongoError = error.message;
+    console.error('❌ MongoDB connection failed:', error.message);
   }
 }
 
 connectToMongo();
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    database: { connected: mongoConnected, error: mongoError }
+  });
+});
 
 // ============ SESSION ENDPOINTS ============
 
