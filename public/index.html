@@ -107,6 +107,15 @@
       border: 1px solid rgba(255,255,255,0.2);
     }
     
+    button.danger {
+      background: rgba(231, 76, 60, 0.2);
+      border: 1px solid rgba(231, 76, 60, 0.4);
+    }
+    
+    button.danger:hover {
+      background: rgba(231, 76, 60, 0.3);
+    }
+    
     button.recording {
       background: #e74c3c;
       animation: pulse 1.5s infinite;
@@ -126,6 +135,126 @@
       display: flex;
       gap: 12px;
       margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    
+    /* Sessions List */
+    .sessions-card {
+      margin-top: 20px;
+    }
+    
+    .sessions-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .session-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+    
+    .session-item:hover {
+      background: rgba(0,0,0,0.3);
+    }
+    
+    .session-info {
+      flex: 1;
+      cursor: pointer;
+    }
+    
+    .session-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .session-meta {
+      font-size: 12px;
+      color: #888;
+      display: flex;
+      gap: 12px;
+    }
+    
+    .session-stats {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+    }
+    
+    .session-stats .correct { color: #2ecc71; }
+    .session-stats .partial { color: #f39c12; }
+    .session-stats .incorrect { color: #e74c3c; }
+    
+    .session-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .session-actions button {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    
+    .no-sessions {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+      font-style: italic;
+    }
+    
+    /* Save Session Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .modal h3 {
+      margin-bottom: 16px;
+      color: #f39c12;
+    }
+    
+    .modal input {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .modal input:focus {
+      outline: none;
+      border-color: #f39c12;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
     }
     
     /* Practice Screen */
@@ -513,8 +642,8 @@
 
 Example:
 - hola = hello
-- buenos días = good morning
-- ¿Cómo te llamas? = What's your name?
+- buenos dias = good morning
+- Como te llamas? = What's your name?
 - Me llamo... = My name is...
 
 The AI will automatically figure out what questions to ask you!"></textarea>
@@ -522,6 +651,14 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           <button id="generate-btn" onclick="generateQuestions()">
             Generate Questions
           </button>
+        </div>
+      </div>
+      
+      <!-- Saved Sessions -->
+      <div class="card sessions-card">
+        <h2>Saved Sessions</h2>
+        <div id="sessions-list" class="sessions-list">
+          <div class="no-sessions">Loading sessions...</div>
         </div>
       </div>
     </div>
@@ -634,9 +771,22 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           </div>
         </div>
         <div class="controls">
+          <button onclick="saveSession()">Save Session</button>
           <button onclick="restartPractice()">Practice Again</button>
           <button class="secondary" onclick="backToSetup()">New Material</button>
         </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Save Session Modal -->
+  <div id="save-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Save Session</h3>
+      <input type="text" id="session-name" placeholder="Enter session name...">
+      <div class="modal-buttons">
+        <button class="secondary" onclick="closeSaveModal()">Cancel</button>
+        <button onclick="confirmSaveSession()">Save</button>
       </div>
     </div>
   </div>
@@ -654,6 +804,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     let currentAudio = null;
     let useInworld = true; // Prefer Inworld TTS
     let speechSpeed = 0.7; // Default speed for language learning
+    let currentSessionId = null; // Track current session for updates
+    let currentRawText = ''; // Store raw text for saving
 
     // Fisher-Yates shuffle
     function shuffle(array) {
@@ -664,6 +816,181 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       }
       return arr;
     }
+
+    // ============ SESSION MANAGEMENT ============
+    
+    // Load saved sessions on page load
+    async function loadSessions() {
+      try {
+        const response = await fetch('/api/sessions');
+        if (!response.ok) {
+          throw new Error('Failed to load sessions');
+        }
+        
+        const data = await response.json();
+        renderSessionsList(data.sessions);
+      } catch (error) {
+        console.error('Load sessions error:', error);
+        document.getElementById('sessions-list').innerHTML = 
+          '<div class="no-sessions">Could not load sessions. Database may not be connected.</div>';
+      }
+    }
+    
+    // Render sessions list
+    function renderSessionsList(sessions) {
+      const container = document.getElementById('sessions-list');
+      
+      if (!sessions || sessions.length === 0) {
+        container.innerHTML = '<div class="no-sessions">No saved sessions yet. Generate questions and save your progress!</div>';
+        return;
+      }
+      
+      container.innerHTML = sessions.map(session => `
+        <div class="session-item" data-id="${session._id}">
+          <div class="session-info" onclick="loadSession('${session._id}')">
+            <div class="session-name">${escapeHtml(session.name)}</div>
+            <div class="session-meta">
+              <span>${session.questionCount || '?'} questions</span>
+              <span>${formatDate(session.createdAt)}</span>
+            </div>
+            ${session.stats ? `
+              <div class="session-stats">
+                <span class="correct">${session.stats.correct || 0} correct</span>
+                <span class="partial">${session.stats.partial || 0} partial</span>
+                <span class="incorrect">${session.stats.incorrect || 0} incorrect</span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="session-actions">
+            <button class="secondary" onclick="loadSession('${session._id}')">Load</button>
+            <button class="danger" onclick="deleteSession('${session._id}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // Load a session
+    async function loadSession(sessionId) {
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}`);
+        if (!response.ok) {
+          throw new Error('Failed to load session');
+        }
+        
+        const data = await response.json();
+        const session = data.session;
+        
+        questions = shuffle(session.questions);
+        currentIndex = 0;
+        stats = { correct: 0, partial: 0, incorrect: 0 };
+        currentSessionId = sessionId;
+        currentRawText = session.rawText || '';
+        
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('practice-screen').classList.remove('hidden');
+        
+        showQuestion();
+      } catch (error) {
+        alert('Error loading session: ' + error.message);
+      }
+    }
+    
+    // Delete a session
+    async function deleteSession(sessionId) {
+      if (!confirm('Are you sure you want to delete this session?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete session');
+        }
+        
+        loadSessions(); // Refresh list
+      } catch (error) {
+        alert('Error deleting session: ' + error.message);
+      }
+    }
+    
+    // Show save modal
+    function saveSession() {
+      document.getElementById('session-name').value = `Session ${new Date().toLocaleDateString()}`;
+      document.getElementById('save-modal').classList.remove('hidden');
+      document.getElementById('session-name').focus();
+      document.getElementById('session-name').select();
+    }
+    
+    // Close save modal
+    function closeSaveModal() {
+      document.getElementById('save-modal').classList.add('hidden');
+    }
+    
+    // Confirm save session
+    async function confirmSaveSession() {
+      const name = document.getElementById('session-name').value.trim();
+      if (!name) {
+        alert('Please enter a session name');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            questions,
+            stats,
+            rawText: currentRawText
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save session');
+        }
+        
+        const data = await response.json();
+        currentSessionId = data.sessionId;
+        
+        closeSaveModal();
+        alert('Session saved successfully!');
+      } catch (error) {
+        alert('Error saving session: ' + error.message);
+      }
+    }
+    
+    // Update session stats
+    async function updateSessionStats() {
+      if (!currentSessionId) return;
+      
+      try {
+        await fetch(`/api/sessions/${currentSessionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stats })
+        });
+      } catch (error) {
+        console.error('Failed to update session stats:', error);
+      }
+    }
+    
+    // Helper functions
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ============ QUESTION GENERATION ============
 
     // Generate questions from raw text
     async function generateQuestions() {
@@ -697,6 +1024,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         questions = shuffle(data.questions);
         currentIndex = 0;
         stats = { correct: 0, partial: 0, incorrect: 0 };
+        currentSessionId = null; // New session, not saved yet
+        currentRawText = rawText;
 
         document.getElementById('setup-screen').classList.add('hidden');
         document.getElementById('practice-screen').classList.remove('hidden');
@@ -746,7 +1075,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       resetQuestionVisibility();
     }
 
-    // Text-to-speech using ElevenLabs API with fallback to browser TTS
+    // Text-to-speech using Inworld API with fallback to browser TTS
     async function speakQuestion() {
       if (isSpeaking) {
         stopSpeaking();
@@ -1019,6 +1348,9 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('partial-count').textContent = stats.partial;
       document.getElementById('incorrect-count').textContent = stats.incorrect;
       
+      // Update session stats in background
+      updateSessionStats();
+      
       // Show feedback card
       const card = document.getElementById('feedback-card');
       card.className = 'feedback-card ' + result.verdict;
@@ -1062,6 +1394,9 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('final-correct').textContent = stats.correct;
       document.getElementById('final-partial').textContent = stats.partial;
       document.getElementById('final-incorrect').textContent = stats.incorrect;
+      
+      // Update session stats one final time
+      updateSessionStats();
     }
 
     function restartPractice() {
@@ -1086,6 +1421,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('summary-screen').classList.add('hidden');
       document.getElementById('practice-screen').classList.add('hidden');
       document.getElementById('setup-screen').classList.remove('hidden');
+      currentSessionId = null;
+      loadSessions(); // Refresh sessions list
     }
 
     function showHint() {
@@ -1161,6 +1498,11 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       revealBtn.classList.remove('revealed');
       listeningTip.classList.remove('hidden');
     }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSessions();
+    });
   </script>
 </body>
 </html>

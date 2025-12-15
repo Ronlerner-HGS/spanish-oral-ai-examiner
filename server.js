@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -14,12 +15,197 @@ app.use(express.static('public'));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const INWORLD_API_KEY = process.env.INWORLD_API_KEY;
+const MONGO_URL = process.env.MONGO_URL;
 
 // Default Inworld voice ID - Rafael is a Spanish voice
 const INWORLD_VOICE_ID = process.env.INWORLD_VOICE_ID || 'Rafael';
 
 // Load system prompt from instructions.md
 const EXTRACT_QA_PROMPT = fs.readFileSync(path.join(__dirname, 'instructions.md'), 'utf-8');
+
+// MongoDB connection
+let db;
+let sessionsCollection;
+
+async function connectToMongo() {
+  if (!MONGO_URL) {
+    console.warn('MONGO_URL not configured - sessions will not be saved');
+    return;
+  }
+  
+  try {
+    const client = new MongoClient(MONGO_URL);
+    await client.connect();
+    db = client.db('spanish-tutor');
+    sessionsCollection = db.collection('sessions');
+    
+    // Create indexes for better query performance
+    await sessionsCollection.createIndex({ createdAt: -1 });
+    await sessionsCollection.createIndex({ name: 'text' });
+    
+    console.log('Connected to MongoDB');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+  }
+}
+
+connectToMongo();
+
+// ============ SESSION ENDPOINTS ============
+
+// Save a new session
+app.post('/api/sessions', async (req, res) => {
+  try {
+    if (!sessionsCollection) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+
+    const { name, questions, stats, rawText } = req.body;
+
+    if (!questions || questions.length === 0) {
+      return res.status(400).json({ error: 'No questions to save' });
+    }
+
+    const session = {
+      name: name || `Session ${new Date().toLocaleDateString()}`,
+      questions,
+      stats: stats || { correct: 0, partial: 0, incorrect: 0 },
+      rawText: rawText || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await sessionsCollection.insertOne(session);
+    
+    res.json({ 
+      success: true, 
+      sessionId: result.insertedId,
+      session: { ...session, _id: result.insertedId }
+    });
+  } catch (error) {
+    console.error('Save session error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all sessions
+app.get('/api/sessions', async (req, res) => {
+  try {
+    if (!sessionsCollection) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+
+    const sessions = await sessionsCollection
+      .find({})
+      .sort({ createdAt: -1 })
+      .project({ 
+        name: 1, 
+        createdAt: 1, 
+        stats: 1,
+        questionCount: { $size: '$questions' }
+      })
+      .toArray();
+
+    // Add question count manually since $size in project doesn't work in all versions
+    const sessionsWithCount = sessions.map(s => ({
+      ...s,
+      questionCount: s.questionCount || 0
+    }));
+
+    res.json({ sessions: sessionsWithCount });
+  } catch (error) {
+    console.error('Get sessions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get a single session by ID
+app.get('/api/sessions/:id', async (req, res) => {
+  try {
+    if (!sessionsCollection) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+
+    const { id } = req.params;
+    
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid session ID' });
+    }
+
+    const session = await sessionsCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ session });
+  } catch (error) {
+    console.error('Get session error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update session stats
+app.patch('/api/sessions/:id', async (req, res) => {
+  try {
+    if (!sessionsCollection) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+
+    const { id } = req.params;
+    const { stats, name } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid session ID' });
+    }
+
+    const updateData = { updatedAt: new Date() };
+    if (stats) updateData.stats = stats;
+    if (name) updateData.name = name;
+
+    const result = await sessionsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update session error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a session
+app.delete('/api/sessions/:id', async (req, res) => {
+  try {
+    if (!sessionsCollection) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid session ID' });
+    }
+
+    const result = await sessionsCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete session error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ EXISTING ENDPOINTS ============
 
 // Extract Q&A from raw text using Groq GPT-OSS-120B
 app.post('/api/extract-qa', async (req, res) => {
