@@ -39,8 +39,22 @@ async function connectToMongo() {
   
   try {
     console.log('🔌 Connecting to MongoDB...');
+    console.log('   Node.js version:', process.version);
+    console.log('   OpenSSL version:', process.versions.openssl);
+    
+    // Try connection with different SSL/TLS configurations
     const client = new MongoClient(MONGO_URL, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      // SSL/TLS options for compatibility
+      ssl: true,
+      tls: true,
+      // For debugging SSL issues - can try setting to true temporarily
+      tlsAllowInvalidCertificates: false,
+      tlsAllowInvalidHostnames: false,
+      // Use newer TLS
+      minPoolSize: 1,
+      maxPoolSize: 10,
     });
     await client.connect();
     db = client.db('spanish-tutor');
@@ -54,6 +68,10 @@ async function connectToMongo() {
   } catch (error) {
     mongoError = error.message;
     console.error('❌ MongoDB connection failed:', error.message);
+    console.error('   Full error:', error);
+    console.error('');
+    console.error('   💡 If SSL error persists, try the non-SRV connection string:');
+    console.error('   In Atlas: Connect → Drivers → Toggle "Connect with MongoDB Driver" → Select connection string that starts with mongodb:// (not mongodb+srv://)');
   }
 }
 
