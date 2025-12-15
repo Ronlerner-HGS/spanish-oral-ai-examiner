@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -16,6 +18,9 @@ const INWORLD_API_KEY = process.env.INWORLD_API_KEY;
 // Default Inworld voice ID - Rafael is a Spanish voice
 const INWORLD_VOICE_ID = process.env.INWORLD_VOICE_ID || 'Rafael';
 
+// Load system prompt from instructions.md
+const EXTRACT_QA_PROMPT = fs.readFileSync(path.join(__dirname, 'instructions.md'), 'utf-8');
+
 // Extract Q&A from raw text using Groq GPT-OSS-120B
 app.post('/api/extract-qa', async (req, res) => {
   try {
@@ -24,34 +29,6 @@ app.post('/api/extract-qa', async (req, res) => {
     if (!rawText || rawText.trim().length === 0) {
       return res.status(400).json({ error: 'No text provided' });
     }
-
-    const systemPrompt = `You are a Spanish oral exam tutor. Analyze the provided study material and extract question-answer pairs suitable for an oral exam.
-
-Rules:
-1. Create questions that test the student's ability to respond verbally in Spanish
-2. Questions can be in Spanish or English depending on the material
-3. Expected answers should be in Spanish
-4. Include vocabulary, verb conjugations, translations, and conversational responses
-5. Make questions clear and specific
-6. For vocabulary: ask "How do you say X in Spanish?" or "What does X mean?"
-7. For conjugations: ask "Conjugate [verb] in [tense] for [subject]"
-8. For conversations: create realistic prompts the student might hear
-
-Return a JSON object with this exact structure:
-{
-  "questions": [
-    {
-      "id": "1",
-      "question": "The question to ask verbally",
-      "expectedAnswer": "The expected Spanish response",
-      "acceptableVariations": ["other acceptable answers"],
-      "topic": "vocabulary|conjugation|translation|conversation",
-      "hint": "optional hint if stuck"
-    }
-  ]
-}
-
-Extract as many relevant questions as the material supports (aim for 10-30 questions).`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -62,7 +39,7 @@ Extract as many relevant questions as the material supports (aim for 10-30 quest
       body: JSON.stringify({
         model: 'openai/gpt-oss-120b',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: EXTRACT_QA_PROMPT },
           { role: 'user', content: `Here is my study material:\n\n${rawText}` }
         ],
         temperature: 0.3,
