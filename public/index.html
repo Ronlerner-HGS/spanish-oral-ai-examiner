@@ -355,6 +355,55 @@
       .controls { flex-direction: column; }
       button { width: 100%; justify-content: center; }
     }
+    
+    /* TTS Toggle */
+    .tts-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #888;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 13px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .toggle-switch.active {
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+    }
+    
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+    }
+    
+    .toggle-switch.active::after {
+      transform: translateX(24px);
+    }
+    
+    .tts-label {
+      min-width: 80px;
+    }
+    
+    .tts-label.active {
+      color: #f39c12;
+    }
   </style>
 </head>
 <body>
@@ -400,6 +449,12 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         <div class="topic-badge" id="topic-badge">vocabulary</div>
         <div class="question-text" id="question-text">Loading question...</div>
         <div class="hint hidden" id="hint-text"></div>
+        
+        <div class="tts-toggle">
+          <span class="tts-label" id="browser-tts-label">Browser</span>
+          <div class="toggle-switch active" id="tts-toggle" onclick="toggleTTSProvider()"></div>
+          <span class="tts-label active" id="elevenlabs-tts-label">ElevenLabs</span>
+        </div>
       </div>
       
       <div class="controls" id="answer-controls">
@@ -492,6 +547,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     let audioChunks = [];
     let isRecording = false;
     let isSpeaking = false;
+    let currentAudio = null;
+    let useElevenLabs = true; // Prefer ElevenLabs TTS
 
     // Fisher-Yates shuffle
     function shuffle(array) {
@@ -581,17 +638,81 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       currentTranscript = '';
     }
 
-    // Text-to-speech using browser API
-    function speakQuestion() {
+    // Text-to-speech using ElevenLabs API with fallback to browser TTS
+    async function speakQuestion() {
       if (isSpeaking) {
-        speechSynthesis.cancel();
-        isSpeaking = false;
-        document.getElementById('speak-btn').textContent = 'Speak Question';
+        stopSpeaking();
         return;
       }
 
       const q = questions[currentIndex];
-      const utterance = new SpeechSynthesisUtterance(q.question);
+      const btn = document.getElementById('speak-btn');
+      
+      btn.innerHTML = '<span class="loading"><span class="spinner"></span>Loading...</span>';
+      btn.disabled = true;
+      
+      try {
+        if (useElevenLabs) {
+          await speakWithElevenLabs(q.question);
+        } else {
+          speakWithBrowser(q.question);
+        }
+      } catch (error) {
+        console.error('ElevenLabs TTS failed, falling back to browser:', error);
+        // Fallback to browser TTS
+        speakWithBrowser(q.question);
+      }
+    }
+
+    // ElevenLabs TTS implementation
+    async function speakWithElevenLabs(text) {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (!response.ok) {
+        throw new Error('ElevenLabs TTS request failed');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      currentAudio = new Audio(audioUrl);
+      
+      currentAudio.onplay = () => {
+        isSpeaking = true;
+        const btn = document.getElementById('speak-btn');
+        btn.textContent = 'Stop Speaking';
+        btn.disabled = false;
+      };
+      
+      currentAudio.onended = () => {
+        isSpeaking = false;
+        const btn = document.getElementById('speak-btn');
+        btn.textContent = 'Speak Question';
+        btn.disabled = false;
+        URL.revokeObjectURL(audioUrl);
+        currentAudio = null;
+      };
+      
+      currentAudio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        isSpeaking = false;
+        const btn = document.getElementById('speak-btn');
+        btn.textContent = 'Speak Question';
+        btn.disabled = false;
+        URL.revokeObjectURL(audioUrl);
+        currentAudio = null;
+      };
+
+      await currentAudio.play();
+    }
+
+    // Browser TTS fallback
+    function speakWithBrowser(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
       
       // Try to find a Spanish voice
       const voices = speechSynthesis.getVoices();
@@ -604,15 +725,33 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       
       utterance.onstart = () => {
         isSpeaking = true;
-        document.getElementById('speak-btn').textContent = 'Stop Speaking';
+        const btn = document.getElementById('speak-btn');
+        btn.textContent = 'Stop Speaking';
+        btn.disabled = false;
       };
       
       utterance.onend = () => {
         isSpeaking = false;
-        document.getElementById('speak-btn').textContent = 'Speak Question';
+        const btn = document.getElementById('speak-btn');
+        btn.textContent = 'Speak Question';
+        btn.disabled = false;
       };
       
       speechSynthesis.speak(utterance);
+    }
+
+    // Stop any ongoing speech
+    function stopSpeaking() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+      }
+      speechSynthesis.cancel();
+      isSpeaking = false;
+      const btn = document.getElementById('speak-btn');
+      btn.textContent = 'Speak Question';
+      btn.disabled = false;
     }
 
     // Recording
@@ -849,6 +988,28 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     speechSynthesis.onvoiceschanged = () => {
       speechSynthesis.getVoices();
     };
+
+    // Toggle between ElevenLabs and Browser TTS
+    function toggleTTSProvider() {
+      useElevenLabs = !useElevenLabs;
+      
+      const toggle = document.getElementById('tts-toggle');
+      const browserLabel = document.getElementById('browser-tts-label');
+      const elevenLabsLabel = document.getElementById('elevenlabs-tts-label');
+      
+      if (useElevenLabs) {
+        toggle.classList.add('active');
+        elevenLabsLabel.classList.add('active');
+        browserLabel.classList.remove('active');
+      } else {
+        toggle.classList.remove('active');
+        elevenLabsLabel.classList.remove('active');
+        browserLabel.classList.add('active');
+      }
+      
+      // Stop any current speech when toggling
+      stopSpeaking();
+    }
   </script>
 </body>
 </html>

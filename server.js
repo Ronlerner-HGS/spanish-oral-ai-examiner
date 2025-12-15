@@ -11,6 +11,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+
+// Default ElevenLabs voice ID - "Rachel" is a good Spanish-capable voice
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'XrExE9yKIg1WjnnlVkGX'; // Matilda - multilingual
 
 // Extract Q&A from raw text using Groq GPT-OSS-120B
 app.post('/api/extract-qa', async (req, res) => {
@@ -198,6 +202,107 @@ Grade this response:`;
     res.json(parsed);
   } catch (error) {
     console.error('Grade error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Text-to-Speech using ElevenLabs
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text, voiceId } = req.body;
+
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({ error: 'No text provided' });
+    }
+
+    if (!ELEVENLABS_API_KEY) {
+      return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+    }
+
+    const selectedVoiceId = voiceId || ELEVENLABS_VOICE_ID;
+
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.5,
+            use_speaker_boost: true
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('ElevenLabs TTS error:', errorText);
+      return res.status(500).json({ error: 'Text-to-speech failed' });
+    }
+
+    // Stream the audio response back to client
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Transfer-Encoding': 'chunked'
+    });
+
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } catch (error) {
+    console.error('TTS error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available ElevenLabs voices
+app.get('/api/voices', async (req, res) => {
+  try {
+    if (!ELEVENLABS_API_KEY) {
+      return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+    }
+
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('ElevenLabs voices error:', errorText);
+      return res.status(500).json({ error: 'Failed to fetch voices' });
+    }
+
+    const data = await response.json();
+
+    // Filter to voices that support Spanish/multilingual
+    const spanishVoices = data.voices.filter(voice => {
+      const labels = voice.labels || {};
+      const languages = labels.language || '';
+      return languages.toLowerCase().includes('spanish') ||
+             languages.toLowerCase().includes('multilingual') ||
+             voice.name.toLowerCase().includes('spanish');
+    });
+
+    res.json({
+      voices: spanishVoices.map(voice => ({
+        voice_id: voice.voice_id,
+        name: voice.name,
+        preview_url: voice.preview_url,
+        labels: voice.labels
+      }))
+    });
+  } catch (error) {
+    console.error('Voices error:', error);
     res.status(500).json({ error: error.message });
   }
 });
