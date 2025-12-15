@@ -504,7 +504,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         <div class="tts-toggle">
           <span class="tts-label" id="browser-tts-label">Browser</span>
           <div class="toggle-switch active" id="tts-toggle" onclick="toggleTTSProvider()"></div>
-          <span class="tts-label active" id="elevenlabs-tts-label">ElevenLabs</span>
+          <span class="tts-label active" id="inworld-tts-label">Inworld</span>
         </div>
         
         <div class="speed-control">
@@ -605,7 +605,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     let isRecording = false;
     let isSpeaking = false;
     let currentAudio = null;
-    let useElevenLabs = true; // Prefer ElevenLabs TTS
+    let useInworld = true; // Prefer Inworld TTS
     let speechSpeed = 0.7; // Default speed for language learning
 
     // Fisher-Yates shuffle
@@ -710,20 +710,20 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       btn.disabled = true;
       
       try {
-        if (useElevenLabs) {
-          await speakWithElevenLabs(q.question);
+        if (useInworld) {
+          await speakWithInworld(q.question);
         } else {
           speakWithBrowser(q.question);
         }
       } catch (error) {
-        console.error('ElevenLabs TTS failed, falling back to browser:', error);
+        console.error('Inworld TTS failed, falling back to browser:', error);
         // Fallback to browser TTS
         speakWithBrowser(q.question);
       }
     }
 
-    // ElevenLabs TTS implementation
-    async function speakWithElevenLabs(text) {
+    // Inworld TTS implementation
+    async function speakWithInworld(text) {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -731,7 +731,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       });
 
       if (!response.ok) {
-        throw new Error('ElevenLabs TTS request failed');
+        throw new Error('Inworld TTS request failed');
       }
 
       const audioBlob = await response.blob();
@@ -1047,21 +1047,21 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       speechSynthesis.getVoices();
     };
 
-    // Toggle between ElevenLabs and Browser TTS
+    // Toggle between Inworld and Browser TTS
     function toggleTTSProvider() {
-      useElevenLabs = !useElevenLabs;
+      useInworld = !useInworld;
       
       const toggle = document.getElementById('tts-toggle');
       const browserLabel = document.getElementById('browser-tts-label');
-      const elevenLabsLabel = document.getElementById('elevenlabs-tts-label');
+      const inworldLabel = document.getElementById('inworld-tts-label');
       
-      if (useElevenLabs) {
+      if (useInworld) {
         toggle.classList.add('active');
-        elevenLabsLabel.classList.add('active');
+        inworldLabel.classList.add('active');
         browserLabel.classList.remove('active');
       } else {
         toggle.classList.remove('active');
-        elevenLabsLabel.classList.remove('active');
+        inworldLabel.classList.remove('active');
         browserLabel.classList.add('active');
       }
       

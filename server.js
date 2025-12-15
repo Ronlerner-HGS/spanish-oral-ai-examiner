@@ -11,10 +11,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const INWORLD_API_KEY = process.env.INWORLD_API_KEY;
 
-// Default ElevenLabs voice ID - "Rachel" is a good Spanish-capable voice
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'XrExE9yKIg1WjnnlVkGX'; // Matilda - multilingual
+// Default Inworld voice ID - Rafael is a Spanish voice
+const INWORLD_VOICE_ID = process.env.INWORLD_VOICE_ID || 'Rafael';
 
 // Extract Q&A from raw text using Groq GPT-OSS-120B
 app.post('/api/extract-qa', async (req, res) => {
@@ -206,7 +206,7 @@ Grade this response:`;
   }
 });
 
-// Text-to-Speech using ElevenLabs
+// Text-to-Speech using Inworld TTS-1-Max
 app.post('/api/tts', async (req, res) => {
   try {
     const { text, voiceId, speed } = req.body;
@@ -215,93 +215,83 @@ app.post('/api/tts', async (req, res) => {
       return res.status(400).json({ error: 'No text provided' });
     }
 
-    if (!ELEVENLABS_API_KEY) {
-      return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+    if (!INWORLD_API_KEY) {
+      return res.status(500).json({ error: 'Inworld API key not configured' });
     }
 
-    const selectedVoiceId = voiceId || ELEVENLABS_VOICE_ID;
-    // Speed: 0.25 (slowest) to 4.0 (fastest), default 0.7 for language learning
-    const selectedSpeed = Math.min(4.0, Math.max(0.25, speed || 0.7));
+    const selectedVoiceId = voiceId || INWORLD_VOICE_ID;
+    // Speed: 0.5 (slowest) to 1.5 (fastest), default 0.7 for language learning
+    const selectedSpeed = Math.min(1.5, Math.max(0.5, speed || 0.7));
 
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg'
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.5,
-            use_speaker_boost: true,
-            speed: selectedSpeed
-          }
-        })
-      }
-    );
+    const response = await fetch('https://api.inworld.ai/tts/v1/voice', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${INWORLD_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: text,
+        voiceId: selectedVoiceId,
+        modelId: 'inworld-tts-1-max',
+        audioConfig: {
+          audioEncoding: 'MP3',
+          sampleRateHertz: 48000,
+          speakingRate: selectedSpeed
+        }
+      })
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs TTS error:', errorText);
+      console.error('Inworld TTS error:', errorText);
       return res.status(500).json({ error: 'Text-to-speech failed' });
     }
 
-    // Stream the audio response back to client
+    const data = await response.json();
+
+    // Decode base64 audio content
+    const audioBuffer = Buffer.from(data.audioContent, 'base64');
+
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Transfer-Encoding': 'chunked'
+      'Content-Length': audioBuffer.length
     });
 
-    const arrayBuffer = await response.arrayBuffer();
-    res.send(Buffer.from(arrayBuffer));
+    res.send(audioBuffer);
   } catch (error) {
     console.error('TTS error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get available ElevenLabs voices
+// Get available Inworld voices
 app.get('/api/voices', async (req, res) => {
   try {
-    if (!ELEVENLABS_API_KEY) {
-      return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+    if (!INWORLD_API_KEY) {
+      return res.status(500).json({ error: 'Inworld API key not configured' });
     }
 
-    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+    // Filter for Spanish voices
+    const response = await fetch('https://api.inworld.ai/tts/v1/voices?filter=language=es', {
       headers: {
-        'xi-api-key': ELEVENLABS_API_KEY
+        'Authorization': `Basic ${INWORLD_API_KEY}`
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs voices error:', errorText);
+      console.error('Inworld voices error:', errorText);
       return res.status(500).json({ error: 'Failed to fetch voices' });
     }
 
     const data = await response.json();
 
-    // Filter to voices that support Spanish/multilingual
-    const spanishVoices = data.voices.filter(voice => {
-      const labels = voice.labels || {};
-      const languages = labels.language || '';
-      return languages.toLowerCase().includes('spanish') ||
-             languages.toLowerCase().includes('multilingual') ||
-             voice.name.toLowerCase().includes('spanish');
-    });
-
     res.json({
-      voices: spanishVoices.map(voice => ({
-        voice_id: voice.voice_id,
-        name: voice.name,
-        preview_url: voice.preview_url,
-        labels: voice.labels
+      voices: (data.voices || []).map(voice => ({
+        voice_id: voice.voiceId,
+        name: voice.voiceId,
+        languages: voice.languages,
+        description: voice.description || ''
       }))
     });
   } catch (error) {
