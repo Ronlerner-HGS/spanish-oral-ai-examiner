@@ -46,13 +46,10 @@ async function connectToMongo() {
     const client = new MongoClient(MONGO_URL, {
       serverSelectionTimeoutMS: 10000,
       connectTimeoutMS: 10000,
-      // SSL/TLS options for compatibility
-      ssl: true,
+      // SSL/TLS options - allow invalid certs to bypass OpenSSL issues
       tls: true,
-      // For debugging SSL issues - can try setting to true temporarily
-      tlsAllowInvalidCertificates: false,
-      tlsAllowInvalidHostnames: false,
-      // Use newer TLS
+      tlsAllowInvalidCertificates: true,
+      tlsAllowInvalidHostnames: true,
       minPoolSize: 1,
       maxPoolSize: 10,
     });
