@@ -231,12 +231,13 @@ app.post('/api/tts', async (req, res) => {
       },
       body: JSON.stringify({
         text: text,
-        voiceId: selectedVoiceId,
-        modelId: 'inworld-tts-1-max',
-        audioConfig: {
-          audioEncoding: 'MP3',
-          sampleRateHertz: 48000,
-          speakingRate: selectedSpeed
+        voice_id: selectedVoiceId,
+        model_id: 'inworld-tts-1-max',
+        temperature: 0.9,
+        audio_config: {
+          audio_encoding: 'MP3',
+          sample_rate_hertz: 48000,
+          speaking_rate: selectedSpeed
         }
       })
     });

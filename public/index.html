@@ -455,6 +455,49 @@
       color: #f39c12;
       font-weight: 600;
     }
+    
+    /* Question Hide/Reveal */
+    .question-text-container {
+      position: relative;
+    }
+    
+    .question-text.blurred {
+      filter: blur(8px);
+      user-select: none;
+      transition: filter 0.3s ease;
+    }
+    
+    .reveal-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px dashed rgba(255,255,255,0.3);
+      color: #888;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+    
+    .reveal-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: #f39c12;
+      border-color: rgba(243, 156, 18, 0.5);
+      transform: none;
+    }
+    
+    .reveal-btn.revealed {
+      background: rgba(243, 156, 18, 0.1);
+      border-color: rgba(243, 156, 18, 0.3);
+      color: #f39c12;
+    }
+    
+    .listening-tip {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -498,7 +541,11 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       
       <div class="question-card">
         <div class="topic-badge" id="topic-badge">vocabulary</div>
-        <div class="question-text" id="question-text">Loading question...</div>
+        <div class="question-text-container">
+          <div class="question-text blurred" id="question-text">Loading question...</div>
+          <button class="reveal-btn" id="reveal-btn" onclick="toggleQuestionVisibility()">Show Question Text</button>
+          <div class="listening-tip" id="listening-tip">Listen first, then reveal if needed</div>
+        </div>
         <div class="hint hidden" id="hint-text"></div>
         
         <div class="tts-toggle">
@@ -694,6 +741,9 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('feedback-area').classList.add('hidden');
       document.getElementById('manual-answer').value = '';
       currentTranscript = '';
+      
+      // Reset question visibility for listening practice
+      resetQuestionVisibility();
     }
 
     // Text-to-speech using ElevenLabs API with fallback to browser TTS
@@ -1075,6 +1125,41 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       const display = document.getElementById('speed-value');
       speechSpeed = parseFloat(slider.value);
       display.textContent = speechSpeed.toFixed(1) + 'x';
+    }
+
+    // Toggle question text visibility (for listening practice)
+    let questionRevealed = false;
+    
+    function toggleQuestionVisibility() {
+      questionRevealed = !questionRevealed;
+      const questionText = document.getElementById('question-text');
+      const revealBtn = document.getElementById('reveal-btn');
+      const listeningTip = document.getElementById('listening-tip');
+      
+      if (questionRevealed) {
+        questionText.classList.remove('blurred');
+        revealBtn.textContent = 'Hide Question Text';
+        revealBtn.classList.add('revealed');
+        listeningTip.classList.add('hidden');
+      } else {
+        questionText.classList.add('blurred');
+        revealBtn.textContent = 'Show Question Text';
+        revealBtn.classList.remove('revealed');
+        listeningTip.classList.remove('hidden');
+      }
+    }
+    
+    // Reset question visibility when showing a new question
+    function resetQuestionVisibility() {
+      questionRevealed = false;
+      const questionText = document.getElementById('question-text');
+      const revealBtn = document.getElementById('reveal-btn');
+      const listeningTip = document.getElementById('listening-tip');
+      
+      questionText.classList.add('blurred');
+      revealBtn.textContent = 'Show Question Text';
+      revealBtn.classList.remove('revealed');
+      listeningTip.classList.remove('hidden');
     }
   </script>
 </body>
