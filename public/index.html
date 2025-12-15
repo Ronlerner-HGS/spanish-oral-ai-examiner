@@ -916,6 +916,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         <div id="summary-screen" class="hidden">
           <div class="card">
             <h2>Practice Complete!</h2>
+            <p style="color: #2ecc71; font-size: 13px; margin-bottom: 16px;">Progress auto-saved</p>
             <div class="summary-stats">
               <div class="summary-stat correct">
                 <div class="number" id="final-correct">0</div>
@@ -931,7 +932,6 @@ The AI will automatically figure out what questions to ask you!"></textarea>
               </div>
             </div>
             <div class="controls">
-              <button onclick="saveSession()">Save Session</button>
               <button onclick="restartPractice()">Practice Again</button>
               <button class="secondary" onclick="backToSetup()">New Material</button>
             </div>
@@ -1175,8 +1175,35 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stats })
         });
+        // Refresh sidebar to show updated stats
+        loadSessions();
       } catch (error) {
         console.error('Failed to update stats:', error);
+      }
+    }
+    
+    // Auto-save session when questions are generated
+    async function autoSaveSession() {
+      const name = `Session ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      
+      try {
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, questions, stats, rawText: currentRawText })
+        });
+        
+        if (!response.ok) {
+          console.error('Auto-save failed');
+          return;
+        }
+        
+        const data = await response.json();
+        currentSessionId = data.sessionId;
+        console.log('Session auto-saved:', currentSessionId);
+        loadSessions();
+      } catch (error) {
+        console.error('Auto-save error:', error);
       }
     }
     
@@ -1217,8 +1244,10 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         questions = shuffle(data.questions);
         currentIndex = 0;
         stats = { correct: 0, partial: 0, incorrect: 0 };
-        currentSessionId = null;
         currentRawText = rawText;
+
+        // Auto-save session immediately
+        await autoSaveSession();
 
         document.getElementById('setup-screen').classList.add('hidden');
         document.getElementById('practice-screen').classList.remove('hidden');
