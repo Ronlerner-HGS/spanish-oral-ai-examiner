@@ -4,7 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { MongoClient, ObjectId } = require('mongodb');
+const { Pool } = require('pg');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -15,7 +15,7 @@ app.use(express.static('public'));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const INWORLD_API_KEY = process.env.INWORLD_API_KEY;
-const MONGO_URL = process.env.MONGO_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
 // Default Inworld voice ID - Rafael is a Spanish voice
 const INWORLD_VOICE_ID = process.env.INWORLD_VOICE_ID || 'Rafael';
@@ -23,62 +23,71 @@ const INWORLD_VOICE_ID = process.env.INWORLD_VOICE_ID || 'Rafael';
 // Load system prompt from instructions.md
 const EXTRACT_QA_PROMPT = fs.readFileSync(path.join(__dirname, 'instructions.md'), 'utf-8');
 
-// MongoDB connection
-let db;
-let sessionsCollection;
-let mongoConnected = false;
-let mongoError = null;
+// PostgreSQL connection
+let pool;
+let dbConnected = false;
+let dbError = null;
 
-async function connectToMongo() {
-  if (!MONGO_URL) {
-    mongoError = 'MONGO_URL not configured';
-    console.warn('⚠️  MONGO_URL not configured - sessions will not be saved');
-    console.warn('   On Railway: Add MongoDB plugin and set MONGO_URL=${{MongoDB.MONGO_URL}}');
+async function connectToDatabase() {
+  if (!DATABASE_URL) {
+    dbError = 'DATABASE_URL not configured';
+    console.warn('⚠️  DATABASE_URL not configured - sessions will not be saved');
+    console.warn('   Set DATABASE_URL to your Supabase PostgreSQL connection string');
     return;
   }
   
   try {
-    console.log('🔌 Connecting to MongoDB...');
+    console.log('🔌 Connecting to PostgreSQL...');
     console.log('   Node.js version:', process.version);
-    console.log('   OpenSSL version:', process.versions.openssl);
     
-    // Try connection with different SSL/TLS configurations
-    const client = new MongoClient(MONGO_URL, {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
-      // SSL/TLS options - allow invalid certs to bypass OpenSSL issues
-      tls: true,
-      tlsAllowInvalidCertificates: true,
-      tlsAllowInvalidHostnames: true,
-      minPoolSize: 1,
-      maxPoolSize: 10,
+    pool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false  // Required for Supabase
+      },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
     });
-    await client.connect();
-    db = client.db('spanish-tutor');
-    sessionsCollection = db.collection('sessions');
     
-    await sessionsCollection.createIndex({ createdAt: -1 });
-    await sessionsCollection.createIndex({ name: 'text' });
+    // Test the connection
+    const client = await pool.connect();
+    console.log('✅ Connected to PostgreSQL');
     
-    mongoConnected = true;
-    console.log('✅ Connected to MongoDB');
+    // Create sessions table if it doesn't exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        questions JSONB NOT NULL,
+        stats JSONB DEFAULT '{"correct": 0, "partial": 0, "incorrect": 0}',
+        raw_text TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    // Create index on created_at for sorting
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at DESC)
+    `);
+    
+    client.release();
+    dbConnected = true;
+    console.log('✅ Sessions table ready');
   } catch (error) {
-    mongoError = error.message;
-    console.error('❌ MongoDB connection failed:', error.message);
-    console.error('   Full error:', error);
-    console.error('');
-    console.error('   💡 If SSL error persists, try the non-SRV connection string:');
-    console.error('   In Atlas: Connect → Drivers → Toggle "Connect with MongoDB Driver" → Select connection string that starts with mongodb:// (not mongodb+srv://)');
+    dbError = error.message;
+    console.error('❌ PostgreSQL connection failed:', error.message);
   }
 }
 
-connectToMongo();
+connectToDatabase();
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    database: { connected: mongoConnected, error: mongoError }
+    database: { connected: dbConnected, error: dbError }
   });
 });
 
@@ -87,7 +96,7 @@ app.get('/api/health', (req, res) => {
 // Save a new session
 app.post('/api/sessions', async (req, res) => {
   try {
-    if (!sessionsCollection) {
+    if (!pool || !dbConnected) {
       return res.status(503).json({ error: 'Database not connected' });
     }
 
@@ -97,21 +106,30 @@ app.post('/api/sessions', async (req, res) => {
       return res.status(400).json({ error: 'No questions to save' });
     }
 
-    const session = {
-      name: name || `Session ${new Date().toLocaleDateString()}`,
-      questions,
-      stats: stats || { correct: 0, partial: 0, incorrect: 0 },
-      rawText: rawText || '',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const sessionName = name || `Session ${new Date().toLocaleDateString()}`;
+    const sessionStats = stats || { correct: 0, partial: 0, incorrect: 0 };
 
-    const result = await sessionsCollection.insertOne(session);
+    const result = await pool.query(
+      `INSERT INTO sessions (name, questions, stats, raw_text)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, questions, stats, raw_text, created_at, updated_at`,
+      [sessionName, JSON.stringify(questions), JSON.stringify(sessionStats), rawText || '']
+    );
+
+    const session = result.rows[0];
     
     res.json({ 
       success: true, 
-      sessionId: result.insertedId,
-      session: { ...session, _id: result.insertedId }
+      sessionId: session.id,
+      session: {
+        _id: session.id,
+        name: session.name,
+        questions: session.questions,
+        stats: session.stats,
+        rawText: session.raw_text,
+        createdAt: session.created_at,
+        updatedAt: session.updated_at
+      }
     });
   } catch (error) {
     console.error('Save session error:', error);
@@ -122,28 +140,26 @@ app.post('/api/sessions', async (req, res) => {
 // Get all sessions
 app.get('/api/sessions', async (req, res) => {
   try {
-    if (!sessionsCollection) {
+    if (!pool || !dbConnected) {
       return res.status(503).json({ error: 'Database not connected' });
     }
 
-    const sessions = await sessionsCollection
-      .find({})
-      .sort({ createdAt: -1 })
-      .project({ 
-        name: 1, 
-        createdAt: 1, 
-        stats: 1,
-        questionCount: { $size: '$questions' }
-      })
-      .toArray();
+    const result = await pool.query(
+      `SELECT id, name, stats, created_at,
+              jsonb_array_length(questions) as question_count
+       FROM sessions
+       ORDER BY created_at DESC`
+    );
 
-    // Add question count manually since $size in project doesn't work in all versions
-    const sessionsWithCount = sessions.map(s => ({
-      ...s,
-      questionCount: s.questionCount || 0
+    const sessions = result.rows.map(row => ({
+      _id: row.id,
+      name: row.name,
+      stats: row.stats,
+      createdAt: row.created_at,
+      questionCount: row.question_count
     }));
 
-    res.json({ sessions: sessionsWithCount });
+    res.json({ sessions });
   } catch (error) {
     console.error('Get sessions error:', error);
     res.status(500).json({ error: error.message });
@@ -153,21 +169,38 @@ app.get('/api/sessions', async (req, res) => {
 // Get a single session by ID
 app.get('/api/sessions/:id', async (req, res) => {
   try {
-    if (!sessionsCollection) {
+    if (!pool || !dbConnected) {
       return res.status(503).json({ error: 'Database not connected' });
     }
 
     const { id } = req.params;
     
-    if (!ObjectId.isValid(id)) {
+    // Validate ID is a number
+    if (isNaN(parseInt(id))) {
       return res.status(400).json({ error: 'Invalid session ID' });
     }
 
-    const session = await sessionsCollection.findOne({ _id: new ObjectId(id) });
+    const result = await pool.query(
+      `SELECT id, name, questions, stats, raw_text, created_at, updated_at
+       FROM sessions
+       WHERE id = $1`,
+      [id]
+    );
 
-    if (!session) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Session not found' });
     }
+
+    const row = result.rows[0];
+    const session = {
+      _id: row.id,
+      name: row.name,
+      questions: row.questions,
+      stats: row.stats,
+      rawText: row.raw_text,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
 
     res.json({ session });
   } catch (error) {
@@ -179,27 +212,41 @@ app.get('/api/sessions/:id', async (req, res) => {
 // Update session stats
 app.patch('/api/sessions/:id', async (req, res) => {
   try {
-    if (!sessionsCollection) {
+    if (!pool || !dbConnected) {
       return res.status(503).json({ error: 'Database not connected' });
     }
 
     const { id } = req.params;
     const { stats, name } = req.body;
 
-    if (!ObjectId.isValid(id)) {
+    if (isNaN(parseInt(id))) {
       return res.status(400).json({ error: 'Invalid session ID' });
     }
 
-    const updateData = { updatedAt: new Date() };
-    if (stats) updateData.stats = stats;
-    if (name) updateData.name = name;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
 
-    const result = await sessionsCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updateData }
+    if (stats) {
+      updates.push(`stats = $${paramCount}`);
+      values.push(JSON.stringify(stats));
+      paramCount++;
+    }
+    if (name) {
+      updates.push(`name = $${paramCount}`);
+      values.push(name);
+      paramCount++;
+    }
+    
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+
+    const result = await pool.query(
+      `UPDATE sessions SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id`,
+      values
     );
 
-    if (result.matchedCount === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
@@ -213,19 +260,22 @@ app.patch('/api/sessions/:id', async (req, res) => {
 // Delete a session
 app.delete('/api/sessions/:id', async (req, res) => {
   try {
-    if (!sessionsCollection) {
+    if (!pool || !dbConnected) {
       return res.status(503).json({ error: 'Database not connected' });
     }
 
     const { id } = req.params;
 
-    if (!ObjectId.isValid(id)) {
+    if (isNaN(parseInt(id))) {
       return res.status(400).json({ error: 'Invalid session ID' });
     }
 
-    const result = await sessionsCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await pool.query(
+      'DELETE FROM sessions WHERE id = $1 RETURNING id',
+      [id]
+    );
 
-    if (result.deletedCount === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
