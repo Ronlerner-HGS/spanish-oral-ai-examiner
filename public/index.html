@@ -16,7 +16,146 @@
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       min-height: 100vh;
       color: #fff;
+    }
+    
+    /* App Layout */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: rgba(0,0,0,0.3);
+      border-right: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+    }
+    
+    .sidebar-header {
       padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .sidebar-header h2 {
+      font-size: 1rem;
+      color: #f39c12;
+      margin: 0;
+    }
+    
+    .sidebar-toggle {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .sidebar-toggle:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transform: none;
+    }
+    
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .db-status {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .db-status.connected { color: #2ecc71; }
+    .db-status.disconnected { color: #e74c3c; }
+    
+    .db-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      padding: 20px;
+      transition: margin-left 0.3s ease;
+    }
+    
+    .main-content.expanded {
+      margin-left: 0;
+    }
+    
+    /* Hamburger button */
+    .hamburger-btn {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 99;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+      transition: all 0.2s;
+    }
+    
+    .hamburger-btn:hover {
+      background: rgba(0,0,0,0.7);
+      transform: none;
+    }
+    
+    .hamburger-btn.visible {
+      display: flex;
+    }
+    
+    /* Overlay for mobile */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+      display: none;
+    }
+    
+    .sidebar-overlay.visible {
+      display: block;
     }
     
     .container {
@@ -138,52 +277,48 @@
       flex-wrap: wrap;
     }
     
-    /* Sessions List */
-    .sessions-card {
-      margin-top: 20px;
-    }
-    
-    .sessions-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    
+    /* Sessions List in Sidebar */
     .session-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: rgba(0,0,0,0.2);
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
       border-radius: 8px;
       margin-bottom: 8px;
+      cursor: pointer;
       transition: background 0.2s;
+      border: 1px solid transparent;
     }
     
     .session-item:hover {
-      background: rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(243, 156, 18, 0.3);
     }
     
-    .session-info {
-      flex: 1;
-      cursor: pointer;
+    .session-item.active {
+      background: rgba(243, 156, 18, 0.15);
+      border-color: rgba(243, 156, 18, 0.5);
     }
     
     .session-name {
       font-weight: 600;
       margin-bottom: 4px;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .session-meta {
-      font-size: 12px;
+      font-size: 11px;
       color: #888;
       display: flex;
-      gap: 12px;
+      gap: 8px;
     }
     
     .session-stats {
       display: flex;
-      gap: 8px;
-      font-size: 12px;
+      gap: 6px;
+      font-size: 11px;
+      margin-top: 4px;
     }
     
     .session-stats .correct { color: #2ecc71; }
@@ -192,22 +327,25 @@
     
     .session-actions {
       display: flex;
-      gap: 8px;
+      gap: 4px;
+      margin-top: 8px;
     }
     
     .session-actions button {
-      padding: 8px 12px;
-      font-size: 13px;
+      padding: 6px 10px;
+      font-size: 11px;
+      flex: 1;
     }
     
     .no-sessions {
       text-align: center;
       color: #666;
-      padding: 20px;
+      padding: 20px 10px;
+      font-size: 13px;
       font-style: italic;
     }
     
-    /* Save Session Modal */
+    /* Modal */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -341,17 +479,9 @@
       text-align: left;
     }
     
-    .feedback-card.correct {
-      border-left: 4px solid #2ecc71;
-    }
-    
-    .feedback-card.partial {
-      border-left: 4px solid #f39c12;
-    }
-    
-    .feedback-card.incorrect {
-      border-left: 4px solid #e74c3c;
-    }
+    .feedback-card.correct { border-left: 4px solid #2ecc71; }
+    .feedback-card.partial { border-left: 4px solid #f39c12; }
+    .feedback-card.incorrect { border-left: 4px solid #e74c3c; }
     
     .verdict {
       font-size: 1.2rem;
@@ -387,7 +517,6 @@
       margin-bottom: 4px;
     }
     
-    /* Transcript display */
     .transcript-display {
       background: rgba(0,0,0,0.3);
       padding: 16px;
@@ -406,10 +535,7 @@
       text-transform: uppercase;
     }
     
-    /* Manual input */
-    .manual-input {
-      margin-top: 16px;
-    }
+    .manual-input { margin-top: 16px; }
     
     .manual-input input {
       width: 100%;
@@ -427,7 +553,6 @@
       border-color: #f39c12;
     }
     
-    /* Loading */
     .loading {
       display: inline-flex;
       align-items: center;
@@ -448,9 +573,7 @@
     }
     
     /* Summary Screen */
-    #summary-screen {
-      text-align: center;
-    }
+    #summary-screen { text-align: center; }
     
     .summary-stats {
       display: flex;
@@ -459,9 +582,7 @@
       margin: 30px 0;
     }
     
-    .summary-stat {
-      text-align: center;
-    }
+    .summary-stat { text-align: center; }
     
     .summary-stat .number {
       font-size: 3rem;
@@ -476,14 +597,6 @@
     .summary-stat.correct .number { color: #2ecc71; }
     .summary-stat.partial .number { color: #f39c12; }
     .summary-stat.incorrect .number { color: #e74c3c; }
-    
-    /* Responsive */
-    @media (max-width: 600px) {
-      h1 { font-size: 1.8rem; }
-      .question-text { font-size: 1.2rem; }
-      .controls { flex-direction: column; }
-      button { width: 100%; justify-content: center; }
-    }
     
     /* TTS Toggle */
     .tts-toggle {
@@ -526,13 +639,8 @@
       transform: translateX(24px);
     }
     
-    .tts-label {
-      min-width: 80px;
-    }
-    
-    .tts-label.active {
-      color: #f39c12;
-    }
+    .tts-label { min-width: 80px; }
+    .tts-label.active { color: #f39c12; }
     
     /* Speed Slider */
     .speed-control {
@@ -545,9 +653,7 @@
       color: #888;
     }
     
-    .speed-control label {
-      min-width: 50px;
-    }
+    .speed-control label { min-width: 50px; }
     
     .speed-slider {
       -webkit-appearance: none;
@@ -586,9 +692,7 @@
     }
     
     /* Question Hide/Reveal */
-    .question-text-container {
-      position: relative;
-    }
+    .question-text-container { position: relative; }
     
     .question-text.blurred {
       filter: blur(8px);
@@ -627,18 +731,90 @@
       margin-top: 8px;
       font-style: italic;
     }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .hamburger-btn {
+        display: flex;
+      }
+      
+      h1 { font-size: 1.8rem; }
+      .question-text { font-size: 1.2rem; }
+      .controls { flex-direction: column; }
+      .controls button { width: 100%; justify-content: center; }
+      .summary-stats { gap: 20px; }
+      .summary-stat .number { font-size: 2rem; }
+    }
+    
+    @media (max-width: 480px) {
+      .stats {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Spanish Tutor</h1>
-    <p class="subtitle">Prep for your oral exam</p>
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+  
+  <!-- Hamburger Button -->
+  <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+  
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Saved Sessions</h2>
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Hide sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="sidebar-content">
+        <div id="sessions-list">
+          <div class="no-sessions">Loading sessions...</div>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="db-status disconnected" id="db-status">
+          <span class="db-dot"></span>
+          <span id="db-status-text">Checking database...</span>
+        </div>
+      </div>
+    </aside>
     
-    <!-- Setup Screen -->
-    <div id="setup-screen">
-      <div class="card">
-        <h2>Paste your study material</h2>
-        <textarea id="raw-text" placeholder="Paste your Spanish notes, vocabulary lists, verb conjugations, or any study material here...
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <div class="container">
+        <h1>Spanish Tutor</h1>
+        <p class="subtitle">Prep for your oral exam</p>
+        
+        <!-- Setup Screen -->
+        <div id="setup-screen">
+          <div class="card">
+            <h2>Paste your study material</h2>
+            <textarea id="raw-text" placeholder="Paste your Spanish notes, vocabulary lists, verb conjugations, or any study material here...
 
 Example:
 - hola = hello
@@ -647,136 +823,122 @@ Example:
 - Me llamo... = My name is...
 
 The AI will automatically figure out what questions to ask you!"></textarea>
-        <div class="button-row">
-          <button id="generate-btn" onclick="generateQuestions()">
-            Generate Questions
-          </button>
-        </div>
-      </div>
-      
-      <!-- Saved Sessions -->
-      <div class="card sessions-card">
-        <h2>Saved Sessions</h2>
-        <div id="sessions-list" class="sessions-list">
-          <div class="no-sessions">Loading sessions...</div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Practice Screen -->
-    <div id="practice-screen" class="hidden">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
-      </div>
-      
-      <div class="stats">
-        <span>Question <strong id="current-num">1</strong> of <strong id="total-num">10</strong></span>
-        <span class="correct">Correct: <strong id="correct-count">0</strong></span>
-        <span class="partial">Partial: <strong id="partial-count">0</strong></span>
-        <span class="incorrect">Incorrect: <strong id="incorrect-count">0</strong></span>
-      </div>
-      
-      <div class="question-card">
-        <div class="topic-badge" id="topic-badge">vocabulary</div>
-        <div class="question-text-container">
-          <div class="question-text blurred" id="question-text">Loading question...</div>
-          <button class="reveal-btn" id="reveal-btn" onclick="toggleQuestionVisibility()">Show Question Text</button>
-          <div class="listening-tip" id="listening-tip">Listen first, then reveal if needed</div>
-        </div>
-        <div class="hint hidden" id="hint-text"></div>
-        
-        <div class="tts-toggle">
-          <span class="tts-label" id="browser-tts-label">Browser</span>
-          <div class="toggle-switch active" id="tts-toggle" onclick="toggleTTSProvider()"></div>
-          <span class="tts-label active" id="inworld-tts-label">Inworld</span>
+            <div class="button-row">
+              <button id="generate-btn" onclick="generateQuestions()">
+                Generate Questions
+              </button>
+            </div>
+          </div>
         </div>
         
-        <div class="speed-control">
-          <label>Speed:</label>
-          <input type="range" class="speed-slider" id="speed-slider" min="0.5" max="1.5" step="0.1" value="0.7" oninput="updateSpeedDisplay()">
-          <span class="speed-value" id="speed-value">0.7x</span>
-        </div>
-      </div>
-      
-      <div class="controls" id="answer-controls">
-        <button id="speak-btn" onclick="speakQuestion()">
-          Speak Question
-        </button>
-        <button id="record-btn" onclick="toggleRecording()">
-          Record Answer
-        </button>
-        <button class="secondary" onclick="showHint()">
-          Show Hint
-        </button>
-        <button class="secondary" onclick="showManualInput()">
-          Type Instead
-        </button>
-      </div>
-      
-      <div id="transcript-area" class="hidden">
-        <div class="transcript-display">
-          <label>You said:</label>
-          <span id="transcript-text"></span>
-        </div>
-        <div class="controls">
-          <button onclick="submitAnswer()">Check Answer</button>
-          <button class="secondary" onclick="retryRecording()">Record Again</button>
-        </div>
-      </div>
-      
-      <div id="manual-input-area" class="hidden manual-input">
-        <input type="text" id="manual-answer" placeholder="Type your answer in Spanish..." onkeypress="handleManualKeypress(event)">
-        <div class="controls">
-          <button onclick="submitManualAnswer()">Check Answer</button>
-          <button class="secondary" onclick="hideManualInput()">Cancel</button>
-        </div>
-      </div>
-      
-      <div id="feedback-area" class="hidden">
-        <div class="feedback-card" id="feedback-card">
-          <div class="verdict" id="verdict-text"></div>
-          <div class="feedback-text" id="feedback-text"></div>
-          <div class="your-answer">
-            <label>Your answer</label>
-            <div id="your-answer-text"></div>
+        <!-- Practice Screen -->
+        <div id="practice-screen" class="hidden">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
           </div>
-          <div class="correct-answer">
-            <label>Expected answer</label>
-            <div id="correct-answer-text"></div>
+          
+          <div class="stats">
+            <span>Question <strong id="current-num">1</strong> of <strong id="total-num">10</strong></span>
+            <span class="correct">Correct: <strong id="correct-count">0</strong></span>
+            <span class="partial">Partial: <strong id="partial-count">0</strong></span>
+            <span class="incorrect">Incorrect: <strong id="incorrect-count">0</strong></span>
+          </div>
+          
+          <div class="question-card">
+            <div class="topic-badge" id="topic-badge">vocabulary</div>
+            <div class="question-text-container">
+              <div class="question-text blurred" id="question-text">Loading question...</div>
+              <button class="reveal-btn" id="reveal-btn" onclick="toggleQuestionVisibility()">Show Question Text</button>
+              <div class="listening-tip" id="listening-tip">Listen first, then reveal if needed</div>
+            </div>
+            <div class="hint hidden" id="hint-text"></div>
+            
+            <div class="tts-toggle">
+              <span class="tts-label" id="browser-tts-label">Browser</span>
+              <div class="toggle-switch active" id="tts-toggle" onclick="toggleTTSProvider()"></div>
+              <span class="tts-label active" id="inworld-tts-label">Inworld</span>
+            </div>
+            
+            <div class="speed-control">
+              <label>Speed:</label>
+              <input type="range" class="speed-slider" id="speed-slider" min="0.5" max="1.5" step="0.1" value="0.7" oninput="updateSpeedDisplay()">
+              <span class="speed-value" id="speed-value">0.7x</span>
+            </div>
+          </div>
+          
+          <div class="controls" id="answer-controls">
+            <button id="speak-btn" onclick="speakQuestion()">Speak Question</button>
+            <button id="record-btn" onclick="toggleRecording()">Record Answer</button>
+            <button class="secondary" onclick="showHint()">Show Hint</button>
+            <button class="secondary" onclick="showManualInput()">Type Instead</button>
+          </div>
+          
+          <div id="transcript-area" class="hidden">
+            <div class="transcript-display">
+              <label>You said:</label>
+              <span id="transcript-text"></span>
+            </div>
+            <div class="controls">
+              <button onclick="submitAnswer()">Check Answer</button>
+              <button class="secondary" onclick="retryRecording()">Record Again</button>
+            </div>
+          </div>
+          
+          <div id="manual-input-area" class="hidden manual-input">
+            <input type="text" id="manual-answer" placeholder="Type your answer in Spanish..." onkeypress="handleManualKeypress(event)">
+            <div class="controls">
+              <button onclick="submitManualAnswer()">Check Answer</button>
+              <button class="secondary" onclick="hideManualInput()">Cancel</button>
+            </div>
+          </div>
+          
+          <div id="feedback-area" class="hidden">
+            <div class="feedback-card" id="feedback-card">
+              <div class="verdict" id="verdict-text"></div>
+              <div class="feedback-text" id="feedback-text"></div>
+              <div class="your-answer">
+                <label>Your answer</label>
+                <div id="your-answer-text"></div>
+              </div>
+              <div class="correct-answer">
+                <label>Expected answer</label>
+                <div id="correct-answer-text"></div>
+              </div>
+            </div>
+            <div class="controls" style="margin-top: 20px;">
+              <button onclick="nextQuestion()">Next Question</button>
+              <button class="secondary" onclick="shuffleAndRestart()">Reshuffle All</button>
+            </div>
           </div>
         </div>
-        <div class="controls" style="margin-top: 20px;">
-          <button onclick="nextQuestion()">Next Question</button>
-          <button class="secondary" onclick="shuffleAndRestart()">Reshuffle All</button>
+        
+        <!-- Summary Screen -->
+        <div id="summary-screen" class="hidden">
+          <div class="card">
+            <h2>Practice Complete!</h2>
+            <div class="summary-stats">
+              <div class="summary-stat correct">
+                <div class="number" id="final-correct">0</div>
+                <div class="label">Correct</div>
+              </div>
+              <div class="summary-stat partial">
+                <div class="number" id="final-partial">0</div>
+                <div class="label">Partial</div>
+              </div>
+              <div class="summary-stat incorrect">
+                <div class="number" id="final-incorrect">0</div>
+                <div class="label">Incorrect</div>
+              </div>
+            </div>
+            <div class="controls">
+              <button onclick="saveSession()">Save Session</button>
+              <button onclick="restartPractice()">Practice Again</button>
+              <button class="secondary" onclick="backToSetup()">New Material</button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    
-    <!-- Summary Screen -->
-    <div id="summary-screen" class="hidden">
-      <div class="card">
-        <h2>Practice Complete!</h2>
-        <div class="summary-stats">
-          <div class="summary-stat correct">
-            <div class="number" id="final-correct">0</div>
-            <div class="label">Correct</div>
-          </div>
-          <div class="summary-stat partial">
-            <div class="number" id="final-partial">0</div>
-            <div class="label">Partial</div>
-          </div>
-          <div class="summary-stat incorrect">
-            <div class="number" id="final-incorrect">0</div>
-            <div class="label">Incorrect</div>
-          </div>
-        </div>
-        <div class="controls">
-          <button onclick="saveSession()">Save Session</button>
-          <button onclick="restartPractice()">Practice Again</button>
-          <button class="secondary" onclick="backToSetup()">New Material</button>
-        </div>
-      </div>
-    </div>
+    </main>
   </div>
   
   <!-- Save Session Modal -->
@@ -802,12 +964,12 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     let isRecording = false;
     let isSpeaking = false;
     let currentAudio = null;
-    let useInworld = true; // Prefer Inworld TTS
-    let speechSpeed = 0.7; // Default speed for language learning
-    let currentSessionId = null; // Track current session for updates
-    let currentRawText = ''; // Store raw text for saving
+    let useInworld = true;
+    let speechSpeed = 0.7;
+    let currentSessionId = null;
+    let currentRawText = '';
+    let sidebarOpen = true;
 
-    // Fisher-Yates shuffle
     function shuffle(array) {
       const arr = [...array];
       for (let i = arr.length - 1; i > 0; i--) {
@@ -817,65 +979,122 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       return arr;
     }
 
-    // ============ SESSION MANAGEMENT ============
+    // ============ SIDEBAR ============
     
-    // Load saved sessions on page load
-    async function loadSessions() {
-      try {
-        const response = await fetch('/api/sessions');
-        if (!response.ok) {
-          throw new Error('Failed to load sessions');
+    function toggleSidebar() {
+      sidebarOpen = !sidebarOpen;
+      updateSidebarState();
+    }
+    
+    function updateSidebarState() {
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('main-content');
+      const hamburger = document.getElementById('hamburger-btn');
+      const overlay = document.getElementById('sidebar-overlay');
+      const isMobile = window.innerWidth <= 768;
+      
+      if (sidebarOpen) {
+        sidebar.classList.remove('collapsed');
+        if (isMobile) {
+          sidebar.classList.add('open');
+          overlay.classList.add('visible');
         }
-        
-        const data = await response.json();
-        renderSessionsList(data.sessions);
-      } catch (error) {
-        console.error('Load sessions error:', error);
-        document.getElementById('sessions-list').innerHTML = 
-          '<div class="no-sessions">Could not load sessions. Database may not be connected.</div>';
+        mainContent.classList.remove('expanded');
+        hamburger.classList.remove('visible');
+      } else {
+        sidebar.classList.add('collapsed');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        mainContent.classList.add('expanded');
+        hamburger.classList.add('visible');
       }
     }
     
-    // Render sessions list
+    window.addEventListener('resize', () => {
+      const isMobile = window.innerWidth <= 768;
+      const overlay = document.getElementById('sidebar-overlay');
+      const sidebar = document.getElementById('sidebar');
+      
+      if (!isMobile) {
+        overlay.classList.remove('visible');
+        sidebar.classList.remove('open');
+        if (sidebarOpen) {
+          sidebar.classList.remove('collapsed');
+        }
+      }
+      updateSidebarState();
+    });
+
+    // ============ DATABASE STATUS ============
+    
+    async function checkDatabaseStatus() {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        const statusEl = document.getElementById('db-status');
+        const textEl = document.getElementById('db-status-text');
+        
+        if (data.database.connected) {
+          statusEl.className = 'db-status connected';
+          textEl.textContent = 'Database connected';
+        } else {
+          statusEl.className = 'db-status disconnected';
+          textEl.textContent = data.database.error || 'Database disconnected';
+        }
+      } catch (error) {
+        document.getElementById('db-status').className = 'db-status disconnected';
+        document.getElementById('db-status-text').textContent = 'Cannot reach server';
+      }
+    }
+
+    // ============ SESSIONS ============
+    
+    async function loadSessions() {
+      try {
+        const response = await fetch('/api/sessions');
+        if (!response.ok) throw new Error('Failed to load');
+        const data = await response.json();
+        renderSessionsList(data.sessions);
+      } catch (error) {
+        document.getElementById('sessions-list').innerHTML = '<div class="no-sessions">Could not load sessions</div>';
+      }
+    }
+    
     function renderSessionsList(sessions) {
       const container = document.getElementById('sessions-list');
       
       if (!sessions || sessions.length === 0) {
-        container.innerHTML = '<div class="no-sessions">No saved sessions yet. Generate questions and save your progress!</div>';
+        container.innerHTML = '<div class="no-sessions">No saved sessions yet</div>';
         return;
       }
       
       container.innerHTML = sessions.map(session => `
-        <div class="session-item" data-id="${session._id}">
-          <div class="session-info" onclick="loadSession('${session._id}')">
-            <div class="session-name">${escapeHtml(session.name)}</div>
-            <div class="session-meta">
-              <span>${session.questionCount || '?'} questions</span>
-              <span>${formatDate(session.createdAt)}</span>
-            </div>
-            ${session.stats ? `
-              <div class="session-stats">
-                <span class="correct">${session.stats.correct || 0} correct</span>
-                <span class="partial">${session.stats.partial || 0} partial</span>
-                <span class="incorrect">${session.stats.incorrect || 0} incorrect</span>
-              </div>
-            ` : ''}
+        <div class="session-item ${currentSessionId === session._id ? 'active' : ''}" data-id="${session._id}">
+          <div class="session-name">${escapeHtml(session.name)}</div>
+          <div class="session-meta">
+            <span>${session.questionCount || '?'}q</span>
+            <span>${formatDate(session.createdAt)}</span>
           </div>
+          ${session.stats ? `
+            <div class="session-stats">
+              <span class="correct">${session.stats.correct || 0}c</span>
+              <span class="partial">${session.stats.partial || 0}p</span>
+              <span class="incorrect">${session.stats.incorrect || 0}i</span>
+            </div>
+          ` : ''}
           <div class="session-actions">
             <button class="secondary" onclick="loadSession('${session._id}')">Load</button>
-            <button class="danger" onclick="deleteSession('${session._id}')">Delete</button>
+            <button class="danger" onclick="deleteSession(event, '${session._id}')">Delete</button>
           </div>
         </div>
       `).join('');
     }
     
-    // Load a session
     async function loadSession(sessionId) {
       try {
         const response = await fetch(`/api/sessions/${sessionId}`);
-        if (!response.ok) {
-          throw new Error('Failed to load session');
-        }
+        if (!response.ok) throw new Error('Failed to load session');
         
         const data = await response.json();
         const session = data.session;
@@ -889,34 +1108,32 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         document.getElementById('setup-screen').classList.add('hidden');
         document.getElementById('practice-screen').classList.remove('hidden');
         
+        if (window.innerWidth <= 768) {
+          sidebarOpen = false;
+          updateSidebarState();
+        }
+        
+        loadSessions();
         showQuestion();
       } catch (error) {
         alert('Error loading session: ' + error.message);
       }
     }
     
-    // Delete a session
-    async function deleteSession(sessionId) {
-      if (!confirm('Are you sure you want to delete this session?')) {
-        return;
-      }
+    async function deleteSession(event, sessionId) {
+      event.stopPropagation();
+      if (!confirm('Delete this session?')) return;
       
       try {
-        const response = await fetch(`/api/sessions/${sessionId}`, {
-          method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to delete session');
-        }
-        
-        loadSessions(); // Refresh list
+        const response = await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete');
+        if (currentSessionId === sessionId) currentSessionId = null;
+        loadSessions();
       } catch (error) {
         alert('Error deleting session: ' + error.message);
       }
     }
     
-    // Show save modal
     function saveSession() {
       document.getElementById('session-name').value = `Session ${new Date().toLocaleDateString()}`;
       document.getElementById('save-modal').classList.remove('hidden');
@@ -924,49 +1141,34 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('session-name').select();
     }
     
-    // Close save modal
     function closeSaveModal() {
       document.getElementById('save-modal').classList.add('hidden');
     }
     
-    // Confirm save session
     async function confirmSaveSession() {
       const name = document.getElementById('session-name').value.trim();
-      if (!name) {
-        alert('Please enter a session name');
-        return;
-      }
+      if (!name) { alert('Please enter a session name'); return; }
       
       try {
         const response = await fetch('/api/sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            questions,
-            stats,
-            rawText: currentRawText
-          })
+          body: JSON.stringify({ name, questions, stats, rawText: currentRawText })
         });
         
-        if (!response.ok) {
-          throw new Error('Failed to save session');
-        }
-        
+        if (!response.ok) throw new Error('Failed to save');
         const data = await response.json();
         currentSessionId = data.sessionId;
-        
         closeSaveModal();
-        alert('Session saved successfully!');
+        loadSessions();
+        alert('Session saved!');
       } catch (error) {
         alert('Error saving session: ' + error.message);
       }
     }
     
-    // Update session stats
     async function updateSessionStats() {
       if (!currentSessionId) return;
-      
       try {
         await fetch(`/api/sessions/${currentSessionId}`, {
           method: 'PATCH',
@@ -974,11 +1176,10 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           body: JSON.stringify({ stats })
         });
       } catch (error) {
-        console.error('Failed to update session stats:', error);
+        console.error('Failed to update stats:', error);
       }
     }
     
-    // Helper functions
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -986,19 +1187,14 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     }
     
     function formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return new Date(dateString).toLocaleDateString();
     }
 
-    // ============ QUESTION GENERATION ============
+    // ============ QUESTIONS ============
 
-    // Generate questions from raw text
     async function generateQuestions() {
       const rawText = document.getElementById('raw-text').value.trim();
-      if (!rawText) {
-        alert('Please paste some study material first!');
-        return;
-      }
+      if (!rawText) { alert('Please paste some study material first!'); return; }
 
       const btn = document.getElementById('generate-btn');
       btn.disabled = true;
@@ -1011,25 +1207,21 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           body: JSON.stringify({ rawText })
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to generate questions');
-        }
-
+        if (!response.ok) throw new Error('Failed to generate questions');
         const data = await response.json();
         
         if (!data.questions || data.questions.length === 0) {
-          throw new Error('No questions could be extracted from the material');
+          throw new Error('No questions could be extracted');
         }
 
         questions = shuffle(data.questions);
         currentIndex = 0;
         stats = { correct: 0, partial: 0, incorrect: 0 };
-        currentSessionId = null; // New session, not saved yet
+        currentSessionId = null;
         currentRawText = rawText;
 
         document.getElementById('setup-screen').classList.add('hidden');
         document.getElementById('practice-screen').classList.remove('hidden');
-        
         showQuestion();
       } catch (error) {
         alert('Error: ' + error.message);
@@ -1039,7 +1231,6 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       }
     }
 
-    // Show current question
     function showQuestion() {
       const q = questions[currentIndex];
       
@@ -1049,42 +1240,30 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('partial-count').textContent = stats.partial;
       document.getElementById('incorrect-count').textContent = stats.incorrect;
       
-      const progress = ((currentIndex) / questions.length) * 100;
-      document.getElementById('progress-fill').style.width = progress + '%';
-      
+      document.getElementById('progress-fill').style.width = ((currentIndex) / questions.length) * 100 + '%';
       document.getElementById('topic-badge').textContent = q.topic || 'question';
       document.getElementById('question-text').textContent = q.question;
       
       const hintEl = document.getElementById('hint-text');
-      if (q.hint) {
-        hintEl.textContent = 'Hint: ' + q.hint;
-      } else {
-        hintEl.textContent = '';
-      }
+      hintEl.textContent = q.hint ? 'Hint: ' + q.hint : '';
       hintEl.classList.add('hidden');
       
-      // Reset UI state
       document.getElementById('answer-controls').classList.remove('hidden');
       document.getElementById('transcript-area').classList.add('hidden');
       document.getElementById('manual-input-area').classList.add('hidden');
       document.getElementById('feedback-area').classList.add('hidden');
       document.getElementById('manual-answer').value = '';
       currentTranscript = '';
-      
-      // Reset question visibility for listening practice
       resetQuestionVisibility();
     }
 
-    // Text-to-speech using Inworld API with fallback to browser TTS
+    // ============ TTS ============
+
     async function speakQuestion() {
-      if (isSpeaking) {
-        stopSpeaking();
-        return;
-      }
+      if (isSpeaking) { stopSpeaking(); return; }
 
       const q = questions[currentIndex];
       const btn = document.getElementById('speak-btn');
-      
       btn.innerHTML = '<span class="loading"><span class="spinner"></span>Loading...</span>';
       btn.disabled = true;
       
@@ -1095,13 +1274,11 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           speakWithBrowser(q.question);
         }
       } catch (error) {
-        console.error('Inworld TTS failed, falling back to browser:', error);
-        // Fallback to browser TTS
+        console.error('TTS failed:', error);
         speakWithBrowser(q.question);
       }
     }
 
-    // Inworld TTS implementation
     async function speakWithInworld(text) {
       const response = await fetch('/api/tts', {
         method: 'POST',
@@ -1109,37 +1286,30 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         body: JSON.stringify({ text, speed: speechSpeed })
       });
 
-      if (!response.ok) {
-        throw new Error('Inworld TTS request failed');
-      }
+      if (!response.ok) throw new Error('TTS failed');
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-      
       currentAudio = new Audio(audioUrl);
       
       currentAudio.onplay = () => {
         isSpeaking = true;
-        const btn = document.getElementById('speak-btn');
-        btn.textContent = 'Stop Speaking';
-        btn.disabled = false;
+        document.getElementById('speak-btn').textContent = 'Stop Speaking';
+        document.getElementById('speak-btn').disabled = false;
       };
       
       currentAudio.onended = () => {
         isSpeaking = false;
-        const btn = document.getElementById('speak-btn');
-        btn.textContent = 'Speak Question';
-        btn.disabled = false;
+        document.getElementById('speak-btn').textContent = 'Speak Question';
+        document.getElementById('speak-btn').disabled = false;
         URL.revokeObjectURL(audioUrl);
         currentAudio = null;
       };
       
-      currentAudio.onerror = (e) => {
-        console.error('Audio playback error:', e);
+      currentAudio.onerror = () => {
         isSpeaking = false;
-        const btn = document.getElementById('speak-btn');
-        btn.textContent = 'Speak Question';
-        btn.disabled = false;
+        document.getElementById('speak-btn').textContent = 'Speak Question';
+        document.getElementById('speak-btn').disabled = false;
         URL.revokeObjectURL(audioUrl);
         currentAudio = null;
       };
@@ -1147,37 +1317,29 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       await currentAudio.play();
     }
 
-    // Browser TTS fallback
     function speakWithBrowser(text) {
       const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Try to find a Spanish voice
       const voices = speechSynthesis.getVoices();
       const spanishVoice = voices.find(v => v.lang.startsWith('es'));
-      if (spanishVoice) {
-        utterance.voice = spanishVoice;
-      }
+      if (spanishVoice) utterance.voice = spanishVoice;
       utterance.lang = 'es-ES';
-      utterance.rate = speechSpeed; // Use the speed slider value
+      utterance.rate = speechSpeed;
       
       utterance.onstart = () => {
         isSpeaking = true;
-        const btn = document.getElementById('speak-btn');
-        btn.textContent = 'Stop Speaking';
-        btn.disabled = false;
+        document.getElementById('speak-btn').textContent = 'Stop Speaking';
+        document.getElementById('speak-btn').disabled = false;
       };
       
       utterance.onend = () => {
         isSpeaking = false;
-        const btn = document.getElementById('speak-btn');
-        btn.textContent = 'Speak Question';
-        btn.disabled = false;
+        document.getElementById('speak-btn').textContent = 'Speak Question';
+        document.getElementById('speak-btn').disabled = false;
       };
       
       speechSynthesis.speak(utterance);
     }
 
-    // Stop any ongoing speech
     function stopSpeaking() {
       if (currentAudio) {
         currentAudio.pause();
@@ -1186,18 +1348,15 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       }
       speechSynthesis.cancel();
       isSpeaking = false;
-      const btn = document.getElementById('speak-btn');
-      btn.textContent = 'Speak Question';
-      btn.disabled = false;
+      document.getElementById('speak-btn').textContent = 'Speak Question';
+      document.getElementById('speak-btn').disabled = false;
     }
 
-    // Recording
+    // ============ RECORDING ============
+
     async function toggleRecording() {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        await startRecording();
-      }
+      if (isRecording) stopRecording();
+      else await startRecording();
     }
 
     async function startRecording() {
@@ -1206,9 +1365,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
         
-        mediaRecorder.ondataavailable = (e) => {
-          audioChunks.push(e.data);
-        };
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
         
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -1218,12 +1375,10 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         
         mediaRecorder.start();
         isRecording = true;
-        
-        const btn = document.getElementById('record-btn');
-        btn.textContent = 'Stop Recording';
-        btn.classList.add('recording');
+        document.getElementById('record-btn').textContent = 'Stop Recording';
+        document.getElementById('record-btn').classList.add('recording');
       } catch (error) {
-        alert('Could not access microphone. Please allow microphone access or use "Type Instead".');
+        alert('Could not access microphone.');
       }
     }
 
@@ -1231,11 +1386,9 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        
-        const btn = document.getElementById('record-btn');
-        btn.innerHTML = '<span class="loading"><span class="spinner"></span>Transcribing...</span>';
-        btn.classList.remove('recording');
-        btn.disabled = true;
+        document.getElementById('record-btn').innerHTML = '<span class="loading"><span class="spinner"></span>Transcribing...</span>';
+        document.getElementById('record-btn').classList.remove('recording');
+        document.getElementById('record-btn').disabled = true;
       }
     }
 
@@ -1244,14 +1397,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         const formData = new FormData();
         formData.append('audio', audioBlob, 'audio.webm');
         
-        const response = await fetch('/api/transcribe', {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!response.ok) {
-          throw new Error('Transcription failed');
-        }
+        const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Transcription failed');
         
         const data = await response.json();
         currentTranscript = data.transcript;
@@ -1262,9 +1409,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       } catch (error) {
         alert('Transcription failed: ' + error.message);
       } finally {
-        const btn = document.getElementById('record-btn');
-        btn.textContent = 'Record Answer';
-        btn.disabled = false;
+        document.getElementById('record-btn').textContent = 'Record Answer';
+        document.getElementById('record-btn').disabled = false;
       }
     }
 
@@ -1274,7 +1420,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       currentTranscript = '';
     }
 
-    // Manual input
+    // ============ MANUAL INPUT ============
+
     function showManualInput() {
       document.getElementById('answer-controls').classList.add('hidden');
       document.getElementById('manual-input-area').classList.remove('hidden');
@@ -1287,30 +1434,21 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     }
 
     function handleManualKeypress(e) {
-      if (e.key === 'Enter') {
-        submitManualAnswer();
-      }
+      if (e.key === 'Enter') submitManualAnswer();
     }
 
     function submitManualAnswer() {
       currentTranscript = document.getElementById('manual-answer').value.trim();
-      if (!currentTranscript) {
-        alert('Please enter an answer');
-        return;
-      }
+      if (!currentTranscript) { alert('Please enter an answer'); return; }
       submitAnswer();
     }
 
-    // Submit answer for grading
+    // ============ GRADING ============
+
     async function submitAnswer() {
-      if (!currentTranscript) {
-        alert('No answer to check');
-        return;
-      }
+      if (!currentTranscript) { alert('No answer to check'); return; }
 
       const q = questions[currentIndex];
-      
-      // Disable buttons during grading
       const buttons = document.querySelectorAll('button');
       buttons.forEach(b => b.disabled = true);
 
@@ -1326,43 +1464,29 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           })
         });
 
-        if (!response.ok) {
-          throw new Error('Grading failed');
-        }
-
-        const result = await response.json();
-        showFeedback(result);
+        if (!response.ok) throw new Error('Grading failed');
+        showFeedback(await response.json());
       } catch (error) {
         alert('Grading failed: ' + error.message);
         buttons.forEach(b => b.disabled = false);
       }
     }
 
-    // Show feedback
     function showFeedback(result) {
       const q = questions[currentIndex];
       
-      // Update stats
       stats[result.verdict]++;
       document.getElementById('correct-count').textContent = stats.correct;
       document.getElementById('partial-count').textContent = stats.partial;
       document.getElementById('incorrect-count').textContent = stats.incorrect;
-      
-      // Update session stats in background
       updateSessionStats();
       
-      // Show feedback card
       const card = document.getElementById('feedback-card');
       card.className = 'feedback-card ' + result.verdict;
       
-      const verdictEmoji = {
-        correct: 'Correct!',
-        partial: 'Partially Correct',
-        incorrect: 'Incorrect'
-      };
-      
+      const verdictText = { correct: 'Correct!', partial: 'Partially Correct', incorrect: 'Incorrect' };
       document.getElementById('verdict-text').className = 'verdict ' + result.verdict;
-      document.getElementById('verdict-text').textContent = verdictEmoji[result.verdict];
+      document.getElementById('verdict-text').textContent = verdictText[result.verdict];
       document.getElementById('feedback-text').textContent = result.feedback;
       document.getElementById('your-answer-text').textContent = currentTranscript;
       document.getElementById('correct-answer-text').textContent = q.expectedAnswer;
@@ -1371,31 +1495,23 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('manual-input-area').classList.add('hidden');
       document.getElementById('feedback-area').classList.remove('hidden');
       
-      // Re-enable buttons
-      const buttons = document.querySelectorAll('button');
-      buttons.forEach(b => b.disabled = false);
+      document.querySelectorAll('button').forEach(b => b.disabled = false);
     }
 
-    // Navigation
+    // ============ NAVIGATION ============
+
     function nextQuestion() {
       currentIndex++;
-      
-      if (currentIndex >= questions.length) {
-        showSummary();
-      } else {
-        showQuestion();
-      }
+      if (currentIndex >= questions.length) showSummary();
+      else showQuestion();
     }
 
     function showSummary() {
       document.getElementById('practice-screen').classList.add('hidden');
       document.getElementById('summary-screen').classList.remove('hidden');
-      
       document.getElementById('final-correct').textContent = stats.correct;
       document.getElementById('final-partial').textContent = stats.partial;
       document.getElementById('final-incorrect').textContent = stats.incorrect;
-      
-      // Update session stats one final time
       updateSessionStats();
     }
 
@@ -1403,10 +1519,8 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       questions = shuffle(questions);
       currentIndex = 0;
       stats = { correct: 0, partial: 0, incorrect: 0 };
-      
       document.getElementById('summary-screen').classList.add('hidden');
       document.getElementById('practice-screen').classList.remove('hidden');
-      
       showQuestion();
     }
 
@@ -1422,22 +1536,19 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       document.getElementById('practice-screen').classList.add('hidden');
       document.getElementById('setup-screen').classList.remove('hidden');
       currentSessionId = null;
-      loadSessions(); // Refresh sessions list
+      loadSessions();
     }
 
     function showHint() {
       document.getElementById('hint-text').classList.toggle('hidden');
     }
 
-    // Load voices (needed for some browsers)
-    speechSynthesis.onvoiceschanged = () => {
-      speechSynthesis.getVoices();
-    };
+    // ============ TTS CONTROLS ============
 
-    // Toggle between Inworld and Browser TTS
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
     function toggleTTSProvider() {
       useInworld = !useInworld;
-      
       const toggle = document.getElementById('tts-toggle');
       const browserLabel = document.getElementById('browser-tts-label');
       const inworldLabel = document.getElementById('inworld-tts-label');
@@ -1451,20 +1562,16 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         inworldLabel.classList.remove('active');
         browserLabel.classList.add('active');
       }
-      
-      // Stop any current speech when toggling
       stopSpeaking();
     }
 
-    // Update speed display and value
     function updateSpeedDisplay() {
-      const slider = document.getElementById('speed-slider');
-      const display = document.getElementById('speed-value');
-      speechSpeed = parseFloat(slider.value);
-      display.textContent = speechSpeed.toFixed(1) + 'x';
+      speechSpeed = parseFloat(document.getElementById('speed-slider').value);
+      document.getElementById('speed-value').textContent = speechSpeed.toFixed(1) + 'x';
     }
 
-    // Toggle question text visibility (for listening practice)
+    // ============ QUESTION VISIBILITY ============
+
     let questionRevealed = false;
     
     function toggleQuestionVisibility() {
@@ -1486,22 +1593,20 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       }
     }
     
-    // Reset question visibility when showing a new question
     function resetQuestionVisibility() {
       questionRevealed = false;
-      const questionText = document.getElementById('question-text');
-      const revealBtn = document.getElementById('reveal-btn');
-      const listeningTip = document.getElementById('listening-tip');
-      
-      questionText.classList.add('blurred');
-      revealBtn.textContent = 'Show Question Text';
-      revealBtn.classList.remove('revealed');
-      listeningTip.classList.remove('hidden');
+      document.getElementById('question-text').classList.add('blurred');
+      document.getElementById('reveal-btn').textContent = 'Show Question Text';
+      document.getElementById('reveal-btn').classList.remove('revealed');
+      document.getElementById('listening-tip').classList.remove('hidden');
     }
     
-    // Initialize
+    // ============ INIT ============
+    
     document.addEventListener('DOMContentLoaded', () => {
       loadSessions();
+      checkDatabaseStatus();
+      updateSidebarState();
     });
   </script>
 </body>
