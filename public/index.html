@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spanish Oral Exam Tutor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 30px;
+    }
+    
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .card h2 {
+      margin-bottom: 16px;
+      font-size: 1.2rem;
+      color: #f39c12;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      padding: 16px;
+      font-size: 14px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #f39c12;
+    }
+    
+    textarea::placeholder {
+      color: #666;
+    }
+    
+    button {
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+      border: none;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    button.secondary {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    button.recording {
+      background: #e74c3c;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+      50% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); }
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Setup Screen */
+    #setup-screen .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    /* Practice Screen */
+    #practice-screen {
+      text-align: center;
+    }
+    
+    .progress-bar {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      height: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+      height: 100%;
+      transition: width 0.3s;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #888;
+    }
+    
+    .stats span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .stats .correct { color: #2ecc71; }
+    .stats .partial { color: #f39c12; }
+    .stats .incorrect { color: #e74c3c; }
+    
+    .question-card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 24px;
+    }
+    
+    .topic-badge {
+      display: inline-block;
+      background: rgba(243, 156, 18, 0.2);
+      color: #f39c12;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+    
+    .question-text {
+      font-size: 1.5rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    
+    .hint {
+      color: #888;
+      font-size: 14px;
+      font-style: italic;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    /* Feedback */
+    .feedback-card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    
+    .feedback-card.correct {
+      border-left: 4px solid #2ecc71;
+    }
+    
+    .feedback-card.partial {
+      border-left: 4px solid #f39c12;
+    }
+    
+    .feedback-card.incorrect {
+      border-left: 4px solid #e74c3c;
+    }
+    
+    .verdict {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .verdict.correct { color: #2ecc71; }
+    .verdict.partial { color: #f39c12; }
+    .verdict.incorrect { color: #e74c3c; }
+    
+    .feedback-text {
+      color: #ccc;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    
+    .your-answer, .correct-answer {
+      background: rgba(0,0,0,0.2);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    
+    .your-answer label, .correct-answer label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    /* Transcript display */
+    .transcript-display {
+      background: rgba(0,0,0,0.3);
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      font-style: italic;
+      color: #ccc;
+    }
+    
+    .transcript-display label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+      font-style: normal;
+      text-transform: uppercase;
+    }
+    
+    /* Manual input */
+    .manual-input {
+      margin-top: 16px;
+    }
+    
+    .manual-input input {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      padding: 14px;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    
+    .manual-input input:focus {
+      outline: none;
+      border-color: #f39c12;
+    }
+    
+    /* Loading */
+    .loading {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Summary Screen */
+    #summary-screen {
+      text-align: center;
+    }
+    
+    .summary-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin: 30px 0;
+    }
+    
+    .summary-stat {
+      text-align: center;
+    }
+    
+    .summary-stat .number {
+      font-size: 3rem;
+      font-weight: 700;
+    }
+    
+    .summary-stat .label {
+      color: #888;
+      font-size: 14px;
+    }
+    
+    .summary-stat.correct .number { color: #2ecc71; }
+    .summary-stat.partial .number { color: #f39c12; }
+    .summary-stat.incorrect .number { color: #e74c3c; }
+    
+    /* Responsive */
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .question-text { font-size: 1.2rem; }
+      .controls { flex-direction: column; }
+      button { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Spanish Tutor</h1>
+    <p class="subtitle">Prep for your oral exam</p>
+    
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+      <div class="card">
+        <h2>Paste your study material</h2>
+        <textarea id="raw-text" placeholder="Paste your Spanish notes, vocabulary lists, verb conjugations, or any study material here...
+
+Example:
+- hola = hello
+- buenos días = good morning
+- ¿Cómo te llamas? = What's your name?
+- Me llamo... = My name is...
+
+The AI will automatically figure out what questions to ask you!"></textarea>
+        <div class="button-row">
+          <button id="generate-btn" onclick="generateQuestions()">
+            Generate Questions
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Practice Screen -->
+    <div id="practice-screen" class="hidden">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      
+      <div class="stats">
+        <span>Question <strong id="current-num">1</strong> of <strong id="total-num">10</strong></span>
+        <span class="correct">Correct: <strong id="correct-count">0</strong></span>
+        <span class="partial">Partial: <strong id="partial-count">0</strong></span>
+        <span class="incorrect">Incorrect: <strong id="incorrect-count">0</strong></span>
+      </div>
+      
+      <div class="question-card">
+        <div class="topic-badge" id="topic-badge">vocabulary</div>
+        <div class="question-text" id="question-text">Loading question...</div>
+        <div class="hint hidden" id="hint-text"></div>
+      </div>
+      
+      <div class="controls" id="answer-controls">
+        <button id="speak-btn" onclick="speakQuestion()">
+          Speak Question
+        </button>
+        <button id="record-btn" onclick="toggleRecording()">
+          Record Answer
+        </button>
+        <button class="secondary" onclick="showHint()">
+          Show Hint
+        </button>
+        <button class="secondary" onclick="showManualInput()">
+          Type Instead
+        </button>
+      </div>
+      
+      <div id="transcript-area" class="hidden">
+        <div class="transcript-display">
+          <label>You said:</label>
+          <span id="transcript-text"></span>
+        </div>
+        <div class="controls">
+          <button onclick="submitAnswer()">Check Answer</button>
+          <button class="secondary" onclick="retryRecording()">Record Again</button>
+        </div>
+      </div>
+      
+      <div id="manual-input-area" class="hidden manual-input">
+        <input type="text" id="manual-answer" placeholder="Type your answer in Spanish..." onkeypress="handleManualKeypress(event)">
+        <div class="controls">
+          <button onclick="submitManualAnswer()">Check Answer</button>
+          <button class="secondary" onclick="hideManualInput()">Cancel</button>
+        </div>
+      </div>
+      
+      <div id="feedback-area" class="hidden">
+        <div class="feedback-card" id="feedback-card">
+          <div class="verdict" id="verdict-text"></div>
+          <div class="feedback-text" id="feedback-text"></div>
+          <div class="your-answer">
+            <label>Your answer</label>
+            <div id="your-answer-text"></div>
+          </div>
+          <div class="correct-answer">
+            <label>Expected answer</label>
+            <div id="correct-answer-text"></div>
+          </div>
+        </div>
+        <div class="controls" style="margin-top: 20px;">
+          <button onclick="nextQuestion()">Next Question</button>
+          <button class="secondary" onclick="shuffleAndRestart()">Reshuffle All</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary Screen -->
+    <div id="summary-screen" class="hidden">
+      <div class="card">
+        <h2>Practice Complete!</h2>
+        <div class="summary-stats">
+          <div class="summary-stat correct">
+            <div class="number" id="final-correct">0</div>
+            <div class="label">Correct</div>
+          </div>
+          <div class="summary-stat partial">
+            <div class="number" id="final-partial">0</div>
+            <div class="label">Partial</div>
+          </div>
+          <div class="summary-stat incorrect">
+            <div class="number" id="final-incorrect">0</div>
+            <div class="label">Incorrect</div>
+          </div>
+        </div>
+        <div class="controls">
+          <button onclick="restartPractice()">Practice Again</button>
+          <button class="secondary" onclick="backToSetup()">New Material</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let questions = [];
+    let currentIndex = 0;
+    let stats = { correct: 0, partial: 0, incorrect: 0 };
+    let currentTranscript = '';
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let isSpeaking = false;
+
+    // Fisher-Yates shuffle
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Generate questions from raw text
+    async function generateQuestions() {
+      const rawText = document.getElementById('raw-text').value.trim();
+      if (!rawText) {
+        alert('Please paste some study material first!');
+        return;
+      }
+
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"><span class="spinner"></span>Analyzing...</span>';
+
+      try {
+        const response = await fetch('/api/extract-qa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate questions');
+        }
+
+        const data = await response.json();
+        
+        if (!data.questions || data.questions.length === 0) {
+          throw new Error('No questions could be extracted from the material');
+        }
+
+        questions = shuffle(data.questions);
+        currentIndex = 0;
+        stats = { correct: 0, partial: 0, incorrect: 0 };
+
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('practice-screen').classList.remove('hidden');
+        
+        showQuestion();
+      } catch (error) {
+        alert('Error: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Generate Questions';
+      }
+    }
+
+    // Show current question
+    function showQuestion() {
+      const q = questions[currentIndex];
+      
+      document.getElementById('current-num').textContent = currentIndex + 1;
+      document.getElementById('total-num').textContent = questions.length;
+      document.getElementById('correct-count').textContent = stats.correct;
+      document.getElementById('partial-count').textContent = stats.partial;
+      document.getElementById('incorrect-count').textContent = stats.incorrect;
+      
+      const progress = ((currentIndex) / questions.length) * 100;
+      document.getElementById('progress-fill').style.width = progress + '%';
+      
+      document.getElementById('topic-badge').textContent = q.topic || 'question';
+      document.getElementById('question-text').textContent = q.question;
+      
+      const hintEl = document.getElementById('hint-text');
+      if (q.hint) {
+        hintEl.textContent = 'Hint: ' + q.hint;
+      } else {
+        hintEl.textContent = '';
+      }
+      hintEl.classList.add('hidden');
+      
+      // Reset UI state
+      document.getElementById('answer-controls').classList.remove('hidden');
+      document.getElementById('transcript-area').classList.add('hidden');
+      document.getElementById('manual-input-area').classList.add('hidden');
+      document.getElementById('feedback-area').classList.add('hidden');
+      document.getElementById('manual-answer').value = '';
+      currentTranscript = '';
+    }
+
+    // Text-to-speech using browser API
+    function speakQuestion() {
+      if (isSpeaking) {
+        speechSynthesis.cancel();
+        isSpeaking = false;
+        document.getElementById('speak-btn').textContent = 'Speak Question';
+        return;
+      }
+
+      const q = questions[currentIndex];
+      const utterance = new SpeechSynthesisUtterance(q.question);
+      
+      // Try to find a Spanish voice
+      const voices = speechSynthesis.getVoices();
+      const spanishVoice = voices.find(v => v.lang.startsWith('es'));
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+      }
+      utterance.lang = 'es-ES';
+      utterance.rate = 0.9;
+      
+      utterance.onstart = () => {
+        isSpeaking = true;
+        document.getElementById('speak-btn').textContent = 'Stop Speaking';
+      };
+      
+      utterance.onend = () => {
+        isSpeaking = false;
+        document.getElementById('speak-btn').textContent = 'Speak Question';
+      };
+      
+      speechSynthesis.speak(utterance);
+    }
+
+    // Recording
+    async function toggleRecording() {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        await startRecording();
+      }
+    }
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (e) => {
+          audioChunks.push(e.data);
+        };
+        
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop());
+          await transcribeAudio(audioBlob);
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        
+        const btn = document.getElementById('record-btn');
+        btn.textContent = 'Stop Recording';
+        btn.classList.add('recording');
+      } catch (error) {
+        alert('Could not access microphone. Please allow microphone access or use "Type Instead".');
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        
+        const btn = document.getElementById('record-btn');
+        btn.innerHTML = '<span class="loading"><span class="spinner"></span>Transcribing...</span>';
+        btn.classList.remove('recording');
+        btn.disabled = true;
+      }
+    }
+
+    async function transcribeAudio(audioBlob) {
+      try {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'audio.webm');
+        
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error('Transcription failed');
+        }
+        
+        const data = await response.json();
+        currentTranscript = data.transcript;
+        
+        document.getElementById('transcript-text').textContent = currentTranscript || '(no speech detected)';
+        document.getElementById('answer-controls').classList.add('hidden');
+        document.getElementById('transcript-area').classList.remove('hidden');
+      } catch (error) {
+        alert('Transcription failed: ' + error.message);
+      } finally {
+        const btn = document.getElementById('record-btn');
+        btn.textContent = 'Record Answer';
+        btn.disabled = false;
+      }
+    }
+
+    function retryRecording() {
+      document.getElementById('transcript-area').classList.add('hidden');
+      document.getElementById('answer-controls').classList.remove('hidden');
+      currentTranscript = '';
+    }
+
+    // Manual input
+    function showManualInput() {
+      document.getElementById('answer-controls').classList.add('hidden');
+      document.getElementById('manual-input-area').classList.remove('hidden');
+      document.getElementById('manual-answer').focus();
+    }
+
+    function hideManualInput() {
+      document.getElementById('manual-input-area').classList.add('hidden');
+      document.getElementById('answer-controls').classList.remove('hidden');
+    }
+
+    function handleManualKeypress(e) {
+      if (e.key === 'Enter') {
+        submitManualAnswer();
+      }
+    }
+
+    function submitManualAnswer() {
+      currentTranscript = document.getElementById('manual-answer').value.trim();
+      if (!currentTranscript) {
+        alert('Please enter an answer');
+        return;
+      }
+      submitAnswer();
+    }
+
+    // Submit answer for grading
+    async function submitAnswer() {
+      if (!currentTranscript) {
+        alert('No answer to check');
+        return;
+      }
+
+      const q = questions[currentIndex];
+      
+      // Disable buttons during grading
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(b => b.disabled = true);
+
+      try {
+        const response = await fetch('/api/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: q.question,
+            expectedAnswer: q.expectedAnswer,
+            studentAnswer: currentTranscript,
+            acceptableVariations: q.acceptableVariations
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Grading failed');
+        }
+
+        const result = await response.json();
+        showFeedback(result);
+      } catch (error) {
+        alert('Grading failed: ' + error.message);
+        buttons.forEach(b => b.disabled = false);
+      }
+    }
+
+    // Show feedback
+    function showFeedback(result) {
+      const q = questions[currentIndex];
+      
+      // Update stats
+      stats[result.verdict]++;
+      document.getElementById('correct-count').textContent = stats.correct;
+      document.getElementById('partial-count').textContent = stats.partial;
+      document.getElementById('incorrect-count').textContent = stats.incorrect;
+      
+      // Show feedback card
+      const card = document.getElementById('feedback-card');
+      card.className = 'feedback-card ' + result.verdict;
+      
+      const verdictEmoji = {
+        correct: 'Correct!',
+        partial: 'Partially Correct',
+        incorrect: 'Incorrect'
+      };
+      
+      document.getElementById('verdict-text').className = 'verdict ' + result.verdict;
+      document.getElementById('verdict-text').textContent = verdictEmoji[result.verdict];
+      document.getElementById('feedback-text').textContent = result.feedback;
+      document.getElementById('your-answer-text').textContent = currentTranscript;
+      document.getElementById('correct-answer-text').textContent = q.expectedAnswer;
+      
+      document.getElementById('transcript-area').classList.add('hidden');
+      document.getElementById('manual-input-area').classList.add('hidden');
+      document.getElementById('feedback-area').classList.remove('hidden');
+      
+      // Re-enable buttons
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(b => b.disabled = false);
+    }
+
+    // Navigation
+    function nextQuestion() {
+      currentIndex++;
+      
+      if (currentIndex >= questions.length) {
+        showSummary();
+      } else {
+        showQuestion();
+      }
+    }
+
+    function showSummary() {
+      document.getElementById('practice-screen').classList.add('hidden');
+      document.getElementById('summary-screen').classList.remove('hidden');
+      
+      document.getElementById('final-correct').textContent = stats.correct;
+      document.getElementById('final-partial').textContent = stats.partial;
+      document.getElementById('final-incorrect').textContent = stats.incorrect;
+    }
+
+    function restartPractice() {
+      questions = shuffle(questions);
+      currentIndex = 0;
+      stats = { correct: 0, partial: 0, incorrect: 0 };
+      
+      document.getElementById('summary-screen').classList.add('hidden');
+      document.getElementById('practice-screen').classList.remove('hidden');
+      
+      showQuestion();
+    }
+
+    function shuffleAndRestart() {
+      questions = shuffle(questions);
+      currentIndex = 0;
+      stats = { correct: 0, partial: 0, incorrect: 0 };
+      showQuestion();
+    }
+
+    function backToSetup() {
+      document.getElementById('summary-screen').classList.add('hidden');
+      document.getElementById('practice-screen').classList.add('hidden');
+      document.getElementById('setup-screen').classList.remove('hidden');
+    }
+
+    function showHint() {
+      document.getElementById('hint-text').classList.toggle('hidden');
+    }
+
+    // Load voices (needed for some browsers)
+    speechSynthesis.onvoiceschanged = () => {
+      speechSynthesis.getVoices();
+    };
+  </script>
+</body>
+</html>
