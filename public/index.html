@@ -404,6 +404,57 @@
     .tts-label.active {
       color: #f39c12;
     }
+    
+    /* Speed Slider */
+    .speed-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #888;
+    }
+    
+    .speed-control label {
+      min-width: 50px;
+    }
+    
+    .speed-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 120px;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      outline: none;
+    }
+    
+    .speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .speed-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(90deg, #f39c12, #e74c3c);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .speed-value {
+      min-width: 40px;
+      text-align: center;
+      color: #f39c12;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -454,6 +505,12 @@ The AI will automatically figure out what questions to ask you!"></textarea>
           <span class="tts-label" id="browser-tts-label">Browser</span>
           <div class="toggle-switch active" id="tts-toggle" onclick="toggleTTSProvider()"></div>
           <span class="tts-label active" id="elevenlabs-tts-label">ElevenLabs</span>
+        </div>
+        
+        <div class="speed-control">
+          <label>Speed:</label>
+          <input type="range" class="speed-slider" id="speed-slider" min="0.5" max="1.5" step="0.1" value="0.7" oninput="updateSpeedDisplay()">
+          <span class="speed-value" id="speed-value">0.7x</span>
         </div>
       </div>
       
@@ -549,6 +606,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
     let isSpeaking = false;
     let currentAudio = null;
     let useElevenLabs = true; // Prefer ElevenLabs TTS
+    let speechSpeed = 0.7; // Default speed for language learning
 
     // Fisher-Yates shuffle
     function shuffle(array) {
@@ -669,7 +727,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, speed: speechSpeed })
       });
 
       if (!response.ok) {
@@ -721,7 +779,7 @@ The AI will automatically figure out what questions to ask you!"></textarea>
         utterance.voice = spanishVoice;
       }
       utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
+      utterance.rate = speechSpeed; // Use the speed slider value
       
       utterance.onstart = () => {
         isSpeaking = true;
@@ -1009,6 +1067,14 @@ The AI will automatically figure out what questions to ask you!"></textarea>
       
       // Stop any current speech when toggling
       stopSpeaking();
+    }
+
+    // Update speed display and value
+    function updateSpeedDisplay() {
+      const slider = document.getElementById('speed-slider');
+      const display = document.getElementById('speed-value');
+      speechSpeed = parseFloat(slider.value);
+      display.textContent = speechSpeed.toFixed(1) + 'x';
     }
   </script>
 </body>

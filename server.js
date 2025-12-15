@@ -209,7 +209,7 @@ Grade this response:`;
 // Text-to-Speech using ElevenLabs
 app.post('/api/tts', async (req, res) => {
   try {
-    const { text, voiceId } = req.body;
+    const { text, voiceId, speed } = req.body;
 
     if (!text || text.trim().length === 0) {
       return res.status(400).json({ error: 'No text provided' });
@@ -220,6 +220,8 @@ app.post('/api/tts', async (req, res) => {
     }
 
     const selectedVoiceId = voiceId || ELEVENLABS_VOICE_ID;
+    // Speed: 0.25 (slowest) to 4.0 (fastest), default 0.7 for language learning
+    const selectedSpeed = Math.min(4.0, Math.max(0.25, speed || 0.7));
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
@@ -237,7 +239,8 @@ app.post('/api/tts', async (req, res) => {
             stability: 0.5,
             similarity_boost: 0.75,
             style: 0.5,
-            use_speaker_boost: true
+            use_speaker_boost: true,
+            speed: selectedSpeed
           }
         })
       }
